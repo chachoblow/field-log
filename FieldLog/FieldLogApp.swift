@@ -23,7 +23,7 @@ struct FieldLogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RecordingListView()
         }
         .modelContainer(container)
     }
