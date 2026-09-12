@@ -21,7 +21,7 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 
-Decisions still open (from the spec): export format (step 7), photo storage (decide in step 1, leaning copy-into-container), WeatherKit field set (step 5).
+Decisions still open (from the spec): export format (step 7), WeatherKit field set (step 5). Photo storage decided in step 1: Photos-library references.
 
 ## Current step: 1 — Data model
 
@@ -51,7 +51,7 @@ Deleted: `FieldLog/Item.swift`. `ContentView` becomes a placeholder list of reco
 1. **Models.** One file per entity, matching the spec exactly. Every property defaulted or optional, every relationship optional, no `@Attribute(.unique)`. Inverses declared explicitly on one side of each many-to-many (`Recording.gear` ↔ `Gear.recordings`, `Recording.tags` ↔ `Tag.recordings`, `KitPreset.gear` ↔ `Gear.presets`). Cascade delete on `Recording.markers` and `Recording.photos`. Each model gets a memberwise-style `init` with defaults so tests and previews can build one in a line.
 2. **Container factory.** A single place that builds the `Schema` from all six types and returns a `ModelContainer`, with an `inMemory: Bool` parameter. `FieldLogApp` uses it for the real store; tests and previews use it in-memory. This replaces the closure currently inline in `FieldLogApp`.
 3. **Seeder.** `GearSeeder.seedIfNeeded(context:)` inserts the default gear and kit presets when the `Gear` table is empty and does nothing otherwise. Called once at launch. Seed data is a static list in the seeder, not a JSON file — it is small and changes rarely.
-4. **Photo storage decision.** Confirm copy-into-container. `Photo.filename` is a path relative to the app's Application Support directory. No file I/O in this step; just the field.
+4. **Photo storage decision.** Decided: reference the Photos library. `Photo.assetIdentifier` holds a `PHAsset.localIdentifier`. No Photos framework work in this step; just the field.
 5. **Tests.** For each entity: create, insert, save, fetch through a fresh in-memory container, assert fields and relationships survive. Plus: cascade delete removes markers and photos but not gear or tags; seeder is idempotent across two calls.
 6. **App still launches.** `ContentView` shows an empty `List` of recordings with a `@Query`. Nothing else.
 7. **Build, test, commit.** `xcodebuild ... build` and `... test -only-testing:FieldLogTests` both pass. One commit, or one per numbered task if they are large.

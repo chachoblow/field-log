@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is deferred and reconciled later against the WAV's BWF origination time. Sync is off but the model is written CloudKit-compatible from day one. Open: export format, and whether photos live in the app container or as Photos-library references.
+FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is deferred and reconciled later against the WAV's BWF origination time. Photos are references into the Photos library, not copies. Sync is off but the model is written CloudKit-compatible from day one. Open: export format.
 
 ## Context
 
@@ -61,6 +61,10 @@ The file doesn't have a name until the recording stops, so the field is optional
 
 Both recorders are 32-bit float; level is set in post and the F3 has no gain control. An optional free-text note covers any future fixed-point recorder.
 
+### Photos are Photos-library references, not copies
+
+A `Photo` stores a `PHAsset.localIdentifier`. The library stays the single home for photos, with Live Photo data, edits, and iCloud Photos backup intact, and nothing is duplicated. Viewing fetches the image from the library on demand; export fetches the bytes on-device and writes a copy alongside the exported record. The cost is that a photo deleted from the library becomes a placeholder in the app. That is a missing context shot, not data loss, and the developer controls the library, so it is acceptable.
+
 ### CloudKit-compatible model with sync off
 
 Sync is not needed until there is a second device, and CloudKit debugging would distract from schema work. But the constraints CloudKit imposes — every property optional or defaulted, relationships optional, no unique attributes — are cheap to honor now and expensive to retrofit. The model follows them from the first commit; enabling sync later is a capability checkbox and a `ModelConfiguration` argument.
@@ -118,7 +122,7 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
 }
 
 @Model final class Photo {
-    var filename: String = ""        // relative path in app container
+    var assetIdentifier: String = "" // PHAsset.localIdentifier in the Photos library
     var takenAt: Date?
     var recording: Recording?
 }
@@ -139,5 +143,4 @@ Every property has a default or is optional, and every relationship is optional,
 ## Open questions
 
 - **Export format.** Markdown into Obsidian, JSON, or CSV — decide before real data goes in, since it shapes what's worth capturing.
-- **Photo storage.** Copying into the app container is simple and survives camera-roll culling but duplicates storage. Referencing Photos by asset identifier avoids duplication but breaks on delete. Leaning toward copying.
 - **WeatherKit field set.** Which fields are worth storing beyond conditions, temperature, and wind. Humidity and pressure are cheap; whether anyone looks at them is the question.
