@@ -16,6 +16,8 @@ struct RecordingFormView: View {
             GearSection(recording: recording)
             FileSection(recording: recording)
             CaptureSection(recording: recording)
+            MarkersSection(recording: recording)
+            PhotosSection(recording: recording)
             ReviewSection(recording: recording)
             TagsSection(recording: recording)
         }
@@ -32,6 +34,7 @@ struct RecordingFormView: View {
     .modelContainer(PreviewData.container)
     .environment(LocationService())
     .environment(WeatherFetcher())
+    .environment(PhotoLibrary())
 }
 
 #Preview("Without filename") {
@@ -41,4 +44,5 @@ struct RecordingFormView: View {
     .modelContainer(PreviewData.container)
     .environment(LocationService())
     .environment(WeatherFetcher())
+    .environment(PhotoLibrary())
 }

@@ -1,7 +1,7 @@
 import XCTest
 
 /// Smoke test for the recording flow: create, wait for the location fix, apply a
-/// preset, tag, edit, relaunch, confirm everything survived, then swipe to delete.
+/// preset, add a marker, tag, edit, relaunch, confirm everything survived, then swipe to delete.
 /// Runs against the simulator's real store. Before running, grant location access
 /// and set a simulated location from the command line (see AGENTS.md); the test
 /// cannot do that itself. Set FIELDLOG_SCREENSHOT_DIR in the scheme's test
@@ -32,7 +32,9 @@ final class FieldLogUITests: XCTestCase {
         save(app.screenshot(), as: "where")
         clearAndType("UI Test Cove\n", into: place)
 
-        app.buttons["Apply Preset"].tap()
+        let applyPreset = app.buttons["Apply Preset"]
+        scroll(app, until: applyPreset)
+        applyPreset.tap()
         app.buttons["Field kit"].tap()
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
 
@@ -41,6 +43,14 @@ final class FieldLogUITests: XCTestCase {
         XCTAssertTrue(containing("48 kHz", in: app).waitForExistence(timeout: 5))
         filename.tap()
         filename.typeText("UITEST01.WAV\n")
+
+        let addMarker = app.buttons["Add Marker"]
+        scroll(app, until: addMarker)
+        addMarker.tap()
+        let note = app.textFields["Note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        XCTAssertTrue(offsetLabel(in: app).exists)
+        note.typeText("plane overhead\n")
 
         let tagField = app.textFields["Add tag"]
         scroll(app, until: tagField)
@@ -59,10 +69,13 @@ final class FieldLogUITests: XCTestCase {
         let row = app.staticTexts["UI Test Cove"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
+        scroll(app, until: containing("Zoom F3", in: app))
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
         let savedFilename = app.textFields["Filename"]
         scroll(app, until: savedFilename)
         XCTAssertEqual(savedFilename.value as? String, "UITEST01.WAV")
+        scroll(app, until: app.textFields["Note"])
+        XCTAssertEqual(app.textFields["Note"].value as? String, "plane overhead")
         scroll(app, until: app.staticTexts["uitest"])
         XCTAssertTrue(app.staticTexts["uitest"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -88,9 +101,14 @@ final class FieldLogUITests: XCTestCase {
         field.typeText(text)
     }
 
+    /// A marker's offset text, "m:ss".
+    private func offsetLabel(in app: XCUIApplication) -> XCUIElement {
+        app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "^\\d+:\\d\\d$")).firstMatch
+    }
+
     /// Form rows are created lazily, so an element below the fold does not exist until scrolled in.
     private func scroll(_ app: XCUIApplication, until element: XCUIElement) {
-        for _ in 0..<6 where !element.exists {
+        for _ in 0..<10 where !element.exists {
             app.swipeUp()
         }
     }

@@ -34,7 +34,9 @@ enum PreviewData {
             captureDescription: "Surf and gulls from the bluff.",
             rating: 4,
             gear: fieldKit,
-            tags: [birds]
+            tags: [birds],
+            markers: [Marker(offsetSeconds: 42, note: "plane overhead"), Marker(offsetSeconds: 318, note: "gull lands close")],
+            photos: [Photo(assetIdentifier: "not-in-this-library")]
         ))
         context.insert(Recording(
             startedAt: .now.addingTimeInterval(-86_400),
