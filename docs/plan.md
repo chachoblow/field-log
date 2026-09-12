@@ -37,7 +37,7 @@ The model already has `weatherSummary`, `temperatureC`, `windSpeedKph`, `windDir
 - **Add humidity and pressure.** Two optional `Double` columns (`humidity` 0–1, `pressureHPa`). Cheap to store; pressure trends matter for wind and weather changes on multi-day trips; both export as two more lines.
 - **Add cloud cover and precipitation.** Useful for reading a recording's "feel" later (overcast dawn chorus versus clear), and rain is the one condition that ruins takes. `conditions` text mostly already says this.
 
-Any added field is one optional property on `Recording`, one round-trip test line, one row in `WeatherSection`, and one line in export. The spec's own question is whether anyone will look at them; the export format (step 7) decides what is worth carrying.
+Any added field is one optional property on `Recording`, one round-trip test line, one row in `WeatherSection`, and one line in export. Adding an optional property migrates the on-device store automatically, so real recordings survive; this is the moment to explain lightweight migration versus a `VersionedSchema` and `SchemaMigrationPlan`, which renames and type changes would need. The spec's own question is whether anyone will look at them; the export format (step 7) decides what is worth carrying.
 
 ### Before starting (developer, in Xcode)
 

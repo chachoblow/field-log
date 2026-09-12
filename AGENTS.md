@@ -36,7 +36,7 @@ xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17'
 
 To see the denied state, `xcrun simctl privacy booted revoke location com.wesklein.FieldLog` and relaunch. `reset` instead of `revoke` returns to "not determined" so the prompt shows again.
 
-`GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` (or delete the app on the device) before the next run, or the old rows stay.
+`GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` before the next run, or the old rows stay. Never do this on the device: deleting the app deletes its SQLite store, recordings included. Once real recordings exist, changed seed data needs an in-app path (edit on the Gear screen, or a one-time migration), not a reinstall.
 
 Pipe through `xcbeautify` if installed; otherwise grep for `error:` and `** BUILD FAILED **`. A successful build ends with `** BUILD SUCCEEDED **`.
 
