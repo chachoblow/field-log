@@ -76,6 +76,16 @@ Do not edit `FieldLog.xcodeproj/project.pbxproj` by hand except to register a ne
 - Never commit `xcuserdata/`, `DerivedData/`, or build output — `.gitignore` covers this; don't remove entries.
 - Don't push, rebase, or force anything.
 
+## Developer context
+
+This is the developer's first iOS app and first time using Xcode. They are an experienced programmer but new to the Apple toolchain, and want to use this project to learn it.
+
+- When a task touches an Xcode or platform concept for the first time (targets, schemes, entitlements, Info.plist keys, signing, simulators, SwiftData containers, `@Query`, etc.), explain it in a sentence or two the first time it comes up. Don't re-explain later.
+- Prefer showing the standard, idiomatic way over a clever shortcut, and say why it's the standard way.
+- When something has to be done in Xcode by hand, give the exact menu or panel path, not just "add the capability."
+- If a build or test failure has an Xcode-specific cause (stale derived data, simulator not booted, file not in target), name the cause and the fix so it's recognizable next time.
+- Don't pad with tutorials. Explanations attach to the work being done, not to things that might come up.
+
 ## Scope discipline
 
 Build what the task asks for. Don't add features, settings, onboarding, or abstractions "for later." If something in the spec is ambiguous, ask or state your assumption in one line and proceed.
