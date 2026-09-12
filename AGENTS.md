@@ -41,6 +41,7 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 - Paid Apple Developer Program membership is active (enrolled September 2026). WeatherKit, CloudKit, and TestFlight are all available; don't work around their absence.
 - The app installs directly from Xcode to the developer's iPhone; that has been verified working. No App Store or TestFlight distribution is planned.
 - Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file.
+- Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use is already set.
 
 ## Layout
 

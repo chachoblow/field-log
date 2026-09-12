@@ -29,9 +29,9 @@ Decisions still open (from the spec): export format (step 7), WeatherKit field s
 
 A new recording opens with coordinates and a reverse-geocoded place name already filled, per the spec. This is the first step that needs a permission, a usage string, and a service with real asynchronous work, so it is also where the app learns how to show "working", "done", and "denied" states in a form.
 
-### Needs from the developer first
+### Already in place
 
-One Xcode change, since the project file is not edited by hand: select the FieldLog target, open *Build Settings*, search for `INFOPLIST_KEY_NSLocationWhenInUseUsageDescription`, and set it to a sentence like "FieldLog records where each recording was made." Xcode writes it into the generated Info.plist. Without it the location request silently never prompts.
+The usage string is set (Sept 2026): `INFOPLIST_KEY_NSLocationWhenInUseUsageDescription` in the target's Build Settings, for both Debug and Release. Nothing else is needed from the developer before starting.
 
 ### Deliverables
 
@@ -63,4 +63,4 @@ FieldLog/Recordings/WhereSection.swift      // moved out of RecordingFormSection
 - Build and unit tests pass.
 - A new recording shows coordinates and a place name without any typing, on simulator and device.
 - Denying permission shows the note and Settings link, and the form still works manually.
-- The roadmap row is marked Done and the usage string is in place.
+- The roadmap row is marked Done.
