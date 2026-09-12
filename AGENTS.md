@@ -27,7 +27,10 @@ xcrun simctl launch booted com.wesklein.FieldLog
 # UI smoke test (needs a fully booted, visible simulator or the runner is refused with RequestDenied)
 xcrun simctl boot "iPhone 17"; xcrun simctl bootstatus "iPhone 17" -b; open -a Simulator
 xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17' -parallel-testing-enabled NO test -only-testing:FieldLogUITests
+# Prefix with TEST_RUNNER_FIELDLOG_SCREENSHOT_DIR=<dir> to have it save screenshots of each screen.
 ```
+
+`GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` (or delete the app on the device) before the next run, or the old rows stay.
 
 Pipe through `xcbeautify` if installed; otherwise grep for `error:` and `** BUILD FAILED **`. A successful build ends with `** BUILD SUCCEEDED **`.
 
