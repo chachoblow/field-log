@@ -33,9 +33,9 @@ A new recording opens with weather already filled from WeatherKit for its coordi
 
 Keep the four existing fields and add four optional `Double` columns to `Recording`: `humidity` (0–1), `pressureHPa`, `cloudCover` (0–1), `precipitationMmPerHour`. All come from one `CurrentWeather` value: `humidity`, `pressure` (a `Measurement<UnitPressure>`, convert to hectopascals), `cloudCover`, and `precipitationIntensity` (a `Measurement<UnitSpeed>`, convert to millimetres per hour). Adding optional properties migrates the on-device store automatically, so real recordings survive; this is the moment to explain lightweight migration versus a `VersionedSchema` and `SchemaMigrationPlan`, which renames and type changes would need. Update `ModelTests.recordingRoundTrips` for the new columns.
 
-### Before starting (developer, in Xcode)
+### Already in place
 
-Add the WeatherKit capability: select the FieldLog target → Signing & Capabilities → **+ Capability** → WeatherKit. Then in the Apple Developer portal, the App ID needs the WeatherKit service enabled (Certificates, Identifiers & Profiles → Identifiers → com.wesklein.FieldLog → App Services → WeatherKit). Xcode usually does the portal part when the capability is added with automatic signing; it can take up to half an hour to propagate. WeatherKit does not work in the simulator without the capability, and requires the paid membership already in place.
+The WeatherKit capability was added in Xcode on Sept 12, 2026: `FieldLog/FieldLog.entitlements` holds `com.apple.developer.weatherkit`, both configurations reference it via `CODE_SIGN_ENTITLEMENTS`, and the regenerated team provisioning profile carries the entitlement, so the App ID is registered. A device build signs cleanly. Nothing else is needed from the developer before starting. If WeatherKit calls fail with a permission error on the first try, wait; Apple's servers can lag the portal by up to half an hour, and the simulator needs to be signed in to an Apple Account for WeatherKit (Settings → Sign in) if it fails there.
 
 ### Deliverables
 
@@ -54,7 +54,7 @@ FieldLog/Recordings/WeatherSection.swift   // moved out of RecordingFormSections
 
 ### Xcode and SwiftUI concepts this step introduces
 
-- **Capabilities and entitlements**: what the Signing & Capabilities tab writes and how it ties to the App ID in the portal.
+- **Capabilities and entitlements** were covered when the capability was added: the entitlements file is the app's half, signed into the binary; the provisioning profile is Apple's half, listing what the team may sign for this bundle ID.
 - **WeatherKit attribution** requirements.
 - **Chaining async services** without one service knowing about the other.
 

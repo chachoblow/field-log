@@ -46,14 +46,15 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 
 - Paid Apple Developer Program membership is active (enrolled September 2026). WeatherKit, CloudKit, and TestFlight are all available; don't work around their absence.
 - The app installs directly from Xcode to the developer's iPhone; that has been verified working. No App Store or TestFlight distribution is planned.
-- Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file.
+- Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file. WeatherKit is already added (September 2026); `FieldLog/FieldLog.entitlements` is the file Xcode wrote for it.
+- To check what a build is signed with: `codesign -d --entitlements - --xml <path to FieldLog.app> | plutil -p -`. To check what the team profile allows: `security cms -D -i <.mobileprovision> | plutil -extract Entitlements xml1 -o - -`.
 - Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use is already set.
 
 ## Layout
 
 ```
 FieldLog.xcodeproj
-FieldLog/            app target sources
+FieldLog/            app target sources; FieldLog.entitlements lives here
 FieldLogTests/       unit tests (Swift Testing)
 FieldLogUITests/     one XCTest smoke test of the recording flow; runs against the simulator's real store
 docs/design.md       spec — data model and scope
