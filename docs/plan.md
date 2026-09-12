@@ -16,46 +16,55 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 3 | Gear screen, kit presets, tag autocomplete | Done | Sept 2026. 13 gear items, 3 presets seeded; reinstall to reseed |
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
 | 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
-| 6 | Markers and photos | **Current** | PhotosPicker in simulator; camera needs device |
-| 7 | Export | Todo | Decide format first (markdown to Obsidian likely); shapes which fields matter |
+| 6 | Markers and photos | Done | Sept 2026. Markers at `now - startedAt` with `m:ss` labels; photos via `PhotosPicker` + `PHImageManager` thumbnails, placeholder when the asset is gone. Camera deferred to step 8 |
+| 7 | Export | **Current** | Decide format first (markdown to Obsidian likely); shapes which fields matter |
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 
-Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields.
+Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields. Camera capture decided in step 6: deferred to step 8, since it needs the device and `UIImagePickerController`.
 
-## Current step: 6 — Markers and photos
+## Current step: 7 — Export
+
+### Decide first: the format
+
+This is the developer's call, not the agent's. The options, with what each costs:
+
+- **Markdown, one file per recording, into Obsidian.** Lands where notes already live and reads without tooling. YAML front matter carries the structured fields (date, coordinates, weather, gear, tags), the body carries description, markers, and notes, and photos are written next to the file and embedded with `![[...]]`. Cost: re-importing is lossy, so it is a publish, not a backup.
+- **JSON, one file with every recording.** Lossless, trivial to re-import or feed to a script that matches filenames against BWF origination times. Cost: not readable in Obsidian without a plugin.
+- **CSV.** Only worth it if a spreadsheet is the destination; markers and photos do not fit a row.
+
+Recommendation to discuss: markdown for the human-facing copy, with JSON added later if the BWF matching script wants it. Whatever is chosen, record it in `docs/design.md` under Open questions before starting.
 
 ### Goal
 
-While a recording's form is open, one tap adds a marker at the current offset from `startedAt` with a short note, and any number of photos can be attached from the Photos library and shown as thumbnails. Both entities already exist in the model with cascade delete, so this step is UI plus one Photos-library service.
+From a recording's form, share that recording as a file (or files) in the chosen format, with attached photos exported as copies alongside it. Every stored field appears in the output; nothing is invented.
 
 ### Deliverables
 
 ```
-FieldLog/Recordings/MarkersSection.swift   // list of markers, "Add Marker" button, inline note editing
-FieldLog/Recordings/PhotosSection.swift    // thumbnail grid, PhotosPicker button, swipe/menu to remove
-FieldLog/Services/PhotoLibrary.swift       // loads a thumbnail for a PHAsset.localIdentifier; placeholder when missing
-FieldLogTests/MarkerOffsetTests.swift      // offset from start, clamped at zero; formatting mm:ss
+FieldLog/Services/RecordingExporter.swift     // pure: Recording -> document text; unit tested
+FieldLog/Services/PhotoExporter.swift          // fetches full-size image data for a Photo's asset (needs library read access, already in place)
+FieldLog/Recordings/ExportButton.swift         // toolbar ShareLink / fileExporter on the form
+FieldLogTests/RecordingExporterTests.swift     // golden-string tests over a fully populated recording and an empty one
 ```
 
 ### Tasks
 
-1. **Markers.** `MarkersSection` lists markers sorted by `offsetSeconds`, each row showing the offset as `m:ss` and an editable note. *Add Marker* inserts one at `now - startedAt` (clamped to zero if the start time was edited into the future) and focuses its note. Keep the offset maths in a small pure helper so it can be tested. Swipe to delete, then `modelContext.save()`.
-2. **Photos picker.** `PhotosSection` uses `PhotosPicker(selection:maxSelectionCount:matching:photoLibrary:)` from PhotosUI with `photoLibrary: .shared()`; that overload is the one whose `PhotosPickerItem.itemIdentifier` is a real `PHAsset.localIdentifier`, which is what `Photo.assetIdentifier` stores. Insert one `Photo` per new item, skipping identifiers already attached, and set `takenAt` from the asset's `creationDate`.
-3. **Thumbnails.** `PhotoLibrary` wraps `PHImageManager.requestImage` for an identifier at thumbnail size, returning nil when the asset is gone so the view shows a placeholder. Reading assets by identifier needs read access, so the developer adds the `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` build setting (same panel as the location string) and the app requests `PHPhotoLibrary` authorization for `.readWrite` the first time a thumbnail loads. Explain limited-library mode when it comes up: the user may grant access to only some photos, and picked ones are always in that set.
-4. **Camera.** Out of scope for the simulator. If it is added in this step, use `UIImagePickerController` via `UIViewControllerRepresentable` only on device, save to the library, then store the resulting identifier; note the UIKit use in the summary. Otherwise defer to step 8.
-5. **Tests.** Offset helper and formatting. Model round trip already covers `Marker` and `Photo`. UI smoke test: add a marker and check its row exists; photos are not asserted since the simulator's library is empty on a fresh boot (`xcrun simctl addmedia booted <image>` can seed one if wanted).
-6. **Build, test, commit.** Manual check on the simulator; camera and Live Photos on device.
+1. **Document text.** `RecordingExporter.render(_:)` builds the file body from a `Recording`. Keep it a pure function over the model so tests can compare against a golden string. Markers as `m:ss — note` lines (reuse `MarkerOffset.label`). Optional fields that are nil are omitted, not written as empty.
+2. **Photos.** `PhotoExporter` uses `PHImageManager.requestImageDataAndOrientation` (or `PHAssetResourceManager` for the original bytes) to copy each attached asset to a temporary folder next to the document, named from the recording's start time plus an index. Missing assets are skipped and listed in the summary.
+3. **Sharing.** `ShareLink` with a `Transferable` folder or zip, or `.fileExporter` with a `FileDocument`, from the form's toolbar. Prefer `ShareLink`: it reaches Files, AirDrop, and the Obsidian app's share extension without extra code. Zip if more than one file must travel together (`NSFileCoordinator` + `forReadingItemAt:options:.forUploading` produces a zip without a library).
+4. **Tests.** Golden-string tests for the renderer. Photo export and sharing are checked by hand on the simulator (seed with `xcrun simctl addmedia`).
+5. **Build, test, commit.** Then step 8: install on the phone, log real recordings, add camera capture if photos from the library turn out to be a detour.
 
 ### Xcode and SwiftUI concepts this step introduces
 
-- **PhotosUI and the Photos framework**: `PhotosPicker` runs out of process and needs no permission; reading an asset back by identifier does.
-- **Photo library authorization** and the limited-library mode.
-- **`UIViewControllerRepresentable`** if the camera is added.
+- **`Transferable` and `ShareLink`**: how SwiftUI hands data to the share sheet without UIKit.
+- **Temporary and security-scoped files**: `FileManager.temporaryDirectory`, and why files for the share sheet live there.
+- **`PHAssetResourceManager`** vs `PHImageManager` for original bytes.
 
 ### Done when
 
 - Build and unit tests pass.
-- A marker can be added while the form is open and its offset is right.
-- A photo picked from the library shows as a thumbnail, survives relaunch, and shows a placeholder if deleted from the library.
+- Sharing a recording produces a file in the chosen format with every stored field, plus copies of its photos.
+- The format decision is recorded in `docs/design.md`.
 - The roadmap row is marked Done.
