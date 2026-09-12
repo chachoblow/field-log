@@ -68,6 +68,8 @@ Entities and their shape are defined in `docs/design.md`. Don't add entities, re
 - Prefer `@Query` and `@Environment(\.modelContext)` in views over view-model wrappers for simple CRUD.
 - Keep business logic (weather fetch, location, export) out of views — put it in plain types under `FieldLog/Services/`.
 - Every model change gets a unit test that inserts and reads back through an in-memory `ModelContainer`.
+- In tests, hold the `ModelContainer` in a local and take `mainContext` from it. Returning only the context lets the container deallocate, and the next insert traps inside SwiftData with a zero-second test failure.
+- Inside `FieldLogTests`, write `FieldLog.Tag`. Swift Testing exports its own `Tag` type, and the bare name is ambiguous there.
 
 ## Project file
 
