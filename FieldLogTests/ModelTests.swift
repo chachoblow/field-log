@@ -16,6 +16,12 @@ struct ModelTests {
             placeName: "Point Reyes",
             weatherSummary: "Fog",
             temperatureC: 12.5,
+            windSpeedKph: 18,
+            windDirectionDeg: 290,
+            humidity: 0.93,
+            pressureHPa: 1016.2,
+            cloudCover: 1.0,
+            precipitationMmPerHour: 0.4,
             filename: "ZOOM0001.WAV",
             sampleRateHz: 48_000,
             bitDepth: "32-bit float",
@@ -35,6 +41,12 @@ struct ModelTests {
         #expect(fetched.placeName == "Point Reyes")
         #expect(fetched.weatherSummary == "Fog")
         #expect(fetched.temperatureC == 12.5)
+        #expect(fetched.windSpeedKph == 18)
+        #expect(fetched.windDirectionDeg == 290)
+        #expect(fetched.humidity == 0.93)
+        #expect(fetched.pressureHPa == 1016.2)
+        #expect(fetched.cloudCover == 1.0)
+        #expect(fetched.precipitationMmPerHour == 0.4)
         #expect(fetched.filename == "ZOOM0001.WAV")
         #expect(fetched.sampleRateHz == 48_000)
         #expect(fetched.bitDepth == "32-bit float")

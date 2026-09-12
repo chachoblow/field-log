@@ -12,6 +12,10 @@ final class Recording {
     var temperatureC: Double?
     var windSpeedKph: Double?
     var windDirectionDeg: Double?
+    var humidity: Double?           // 0–1
+    var pressureHPa: Double?
+    var cloudCover: Double?         // 0–1
+    var precipitationMmPerHour: Double?
     var filename: String?           // deferred until the recording stops
     var sampleRateHz: Int?          // defaulted from recorder
     var bitDepth: String?           // "32-bit float", "24-bit"
@@ -36,6 +40,10 @@ final class Recording {
         temperatureC: Double? = nil,
         windSpeedKph: Double? = nil,
         windDirectionDeg: Double? = nil,
+        humidity: Double? = nil,
+        pressureHPa: Double? = nil,
+        cloudCover: Double? = nil,
+        precipitationMmPerHour: Double? = nil,
         filename: String? = nil,
         sampleRateHz: Int? = nil,
         bitDepth: String? = nil,
@@ -58,6 +66,10 @@ final class Recording {
         self.temperatureC = temperatureC
         self.windSpeedKph = windSpeedKph
         self.windDirectionDeg = windDirectionDeg
+        self.humidity = humidity
+        self.pressureHPa = pressureHPa
+        self.cloudCover = cloudCover
+        self.precipitationMmPerHour = precipitationMmPerHour
         self.filename = filename
         self.sampleRateHz = sampleRateHz
         self.bitDepth = bitDepth
