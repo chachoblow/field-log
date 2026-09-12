@@ -15,51 +15,47 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 2 | Recording list and manual create/edit form | Done | Sept 2026. Explicit saves on insert, delete, and form dismiss; UI smoke test covers the flow |
 | 3 | Gear screen, kit presets, tag autocomplete | Done | Sept 2026. 13 gear items, 3 presets seeded; reinstall to reseed |
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
-| 5 | Weather service: WeatherKit | **Current** | Needs WeatherKit capability in Xcode; decide field set |
-| 6 | Markers and photos | Todo | PhotosPicker in simulator; camera needs device |
+| 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Simulator gets a 401 from the token endpoint; verify on device |
+| 6 | Markers and photos | **Current** | PhotosPicker in simulator; camera needs device |
 | 7 | Export | Todo | Decide format first (markdown to Obsidian likely); shapes which fields matter |
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 
-Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided before step 5: all eight fields.
+Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields.
 
-## Current step: 5 — Weather service
+## Current step: 6 — Markers and photos
 
 ### Goal
 
-A new recording opens with weather already filled from WeatherKit for its coordinates and start time, and the Weather section shows it. Runs right after the location fix, since it needs coordinates.
-
-### Field set (decided Sept 2026)
-
-Keep the four existing fields and add four optional `Double` columns to `Recording`: `humidity` (0–1), `pressureHPa`, `cloudCover` (0–1), `precipitationMmPerHour`. All come from one `CurrentWeather` value: `humidity`, `pressure` (a `Measurement<UnitPressure>`, convert to hectopascals), `cloudCover`, and `precipitationIntensity` (a `Measurement<UnitSpeed>`, convert to millimetres per hour). Adding optional properties migrates the on-device store automatically, so real recordings survive; this is the moment to explain lightweight migration versus a `VersionedSchema` and `SchemaMigrationPlan`, which renames and type changes would need. Update `ModelTests.recordingRoundTrips` for the new columns.
-
-### Already in place
-
-The WeatherKit capability was added in Xcode on Sept 12, 2026: `FieldLog/FieldLog.entitlements` holds `com.apple.developer.weatherkit`, both configurations reference it via `CODE_SIGN_ENTITLEMENTS`, and the regenerated team provisioning profile carries the entitlement, so the App ID is registered. A device build signs cleanly. Nothing else is needed from the developer before starting. If WeatherKit calls fail with a permission error on the first try, wait; Apple's servers can lag the portal by up to half an hour, and the simulator needs to be signed in to an Apple Account for WeatherKit (Settings → Sign in) if it fails there.
+While a recording's form is open, one tap adds a marker at the current offset from `startedAt` with a short note, and any number of photos can be attached from the Photos library and shown as thumbnails. Both entities already exist in the model with cascade delete, so this step is UI plus one Photos-library service.
 
 ### Deliverables
 
 ```
-FieldLog/Services/WeatherService.swift     // @Observable: status + fill(_ recording:), calls WeatherService.shared.weather(for:)
-FieldLog/Recordings/WeatherSection.swift   // moved out of RecordingFormSections; status row, Update Weather button, attribution
+FieldLog/Recordings/MarkersSection.swift   // list of markers, "Add Marker" button, inline note editing
+FieldLog/Recordings/PhotosSection.swift    // thumbnail grid, PhotosPicker button, swipe/menu to remove
+FieldLog/Services/PhotoLibrary.swift       // loads a thumbnail for a PHAsset.localIdentifier; placeholder when missing
+FieldLogTests/MarkerOffsetTests.swift      // offset from start, clamped at zero; formatting mm:ss
 ```
 
 ### Tasks
 
-1. **Service.** `WeatherService` (name it `WeatherFetcher` if the WeatherKit type clashes) takes a recording with coordinates, fetches `CurrentWeather` for the location, and writes the chosen fields. Use `hourly` forecast for the hour containing `startedAt` when the recording is edited later than a few hours after the fact; otherwise current conditions. Status `idle`, `loading`, `loaded`, `failed`, same shape as `LocationService`.
-2. **Chain from location.** `LocationService.fill` cannot know about weather; instead `RecordingListView.addRecording` awaits the fix, then triggers the weather fill. Simplest: give `LocationService.fill` a completion, or make `fill` async and start weather from the same `Task`.
-3. **Weather section.** Move to its own file. Show a *Loading…* row, an *Update Weather* button, a failed note, and the required attribution: WeatherKit terms require showing the Apple Weather mark and a link to the legal attribution page (`WeatherAttribution`). Keep it as a small footer in the section.
-4. **Tests.** WeatherKit cannot be unit tested; test any pure mapping (e.g. `Measurement` → stored units, compass direction → degrees) if there is one. UI smoke test: weather is not asserted, since the simulator's availability depends on signing.
-5. **Build, test, commit.** Manual check on the simulator with the capability, then on device.
+1. **Markers.** `MarkersSection` lists markers sorted by `offsetSeconds`, each row showing the offset as `m:ss` and an editable note. *Add Marker* inserts one at `now - startedAt` (clamped to zero if the start time was edited into the future) and focuses its note. Keep the offset maths in a small pure helper so it can be tested. Swipe to delete, then `modelContext.save()`.
+2. **Photos picker.** `PhotosSection` uses `PhotosPicker(selection:maxSelectionCount:matching:photoLibrary:)` from PhotosUI with `photoLibrary: .shared()`; that overload is the one whose `PhotosPickerItem.itemIdentifier` is a real `PHAsset.localIdentifier`, which is what `Photo.assetIdentifier` stores. Insert one `Photo` per new item, skipping identifiers already attached, and set `takenAt` from the asset's `creationDate`.
+3. **Thumbnails.** `PhotoLibrary` wraps `PHImageManager.requestImage` for an identifier at thumbnail size, returning nil when the asset is gone so the view shows a placeholder. Reading assets by identifier needs read access, so the developer adds the `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` build setting (same panel as the location string) and the app requests `PHPhotoLibrary` authorization for `.readWrite` the first time a thumbnail loads. Explain limited-library mode when it comes up: the user may grant access to only some photos, and picked ones are always in that set.
+4. **Camera.** Out of scope for the simulator. If it is added in this step, use `UIImagePickerController` via `UIViewControllerRepresentable` only on device, save to the library, then store the resulting identifier; note the UIKit use in the summary. Otherwise defer to step 8.
+5. **Tests.** Offset helper and formatting. Model round trip already covers `Marker` and `Photo`. UI smoke test: add a marker and check its row exists; photos are not asserted since the simulator's library is empty on a fresh boot (`xcrun simctl addmedia booted <image>` can seed one if wanted).
+6. **Build, test, commit.** Manual check on the simulator; camera and Live Photos on device.
 
 ### Xcode and SwiftUI concepts this step introduces
 
-- **Capabilities and entitlements** were covered when the capability was added: the entitlements file is the app's half, signed into the binary; the provisioning profile is Apple's half, listing what the team may sign for this bundle ID.
-- **WeatherKit attribution** requirements.
-- **Chaining async services** without one service knowing about the other.
+- **PhotosUI and the Photos framework**: `PhotosPicker` runs out of process and needs no permission; reading an asset back by identifier does.
+- **Photo library authorization** and the limited-library mode.
+- **`UIViewControllerRepresentable`** if the camera is added.
 
 ### Done when
 
 - Build and unit tests pass.
-- A new recording with a location shows weather within a few seconds on the device.
+- A marker can be added while the form is open and its offset is right.
+- A photo picked from the library shows as a thumbnail, survives relaunch, and shows a placeholder if deleted from the library.
 - The roadmap row is marked Done.

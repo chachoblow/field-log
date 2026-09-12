@@ -36,6 +36,8 @@ xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17'
 
 To see the denied state, `xcrun simctl privacy booted revoke location com.wesklein.FieldLog` and relaunch. `reset` instead of `revoke` returns to "not determined" so the prompt shows again.
 
+If the UI smoke test fails partway, it leaves its "UI Test Cove" recording behind and the next run fails on a duplicate row; `xcrun simctl uninstall booted com.wesklein.FieldLog`, rebuild, and grant location again before rerunning. Form rows below the fold don't exist to XCTest until scrolled in, so use the test's `scroll(_:until:)` before touching anything low on the form.
+
 `GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` before the next run, or the old rows stay. Never do this on the device: deleting the app deletes its SQLite store, recordings included. Once real recordings exist, changed seed data needs an in-app path (edit on the Gear screen, or a one-time migration), not a reinstall.
 
 Pipe through `xcbeautify` if installed; otherwise grep for `error:` and `** BUILD FAILED **`. A successful build ends with `** BUILD SUCCEEDED **`.
@@ -48,6 +50,7 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 - The app installs directly from Xcode to the developer's iPhone; that has been verified working. No App Store or TestFlight distribution is planned.
 - Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file. WeatherKit is already added (September 2026); `FieldLog/FieldLog.entitlements` is the file Xcode wrote for it.
 - To check what a build is signed with: `codesign -d --entitlements - --xml <path to FieldLog.app> | plutil -p -`. To check what the team profile allows: `security cms -D -i <.mobileprovision> | plutil -extract Entitlements xml1 -o - -`.
+- WeatherKit on the simulator can fail with a 401 from `weatherkit.apple.com/v3/token` (logged by `com.apple.weatherkit.authservice`; the app sees `WDSJWTAuthenticatorServiceListener.Errors Code=2`). Seen right after the capability was added in September 2026. Check on the device before debugging: the simulator also needs an Apple Account signed in (Settings → Sign in). To see the WeatherKit log: `xcrun simctl spawn booted log show --last 5m --predicate 'subsystem == "com.apple.weather"' --style compact`.
 - Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use is already set.
 
 ## Layout
