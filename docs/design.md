@@ -82,6 +82,10 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
     var temperatureC: Double?
     var windSpeedKph: Double?
     var windDirectionDeg: Double?
+    var humidity: Double?           // 0–1
+    var pressureHPa: Double?
+    var cloudCover: Double?         // 0–1
+    var precipitationMmPerHour: Double?
     var filename: String?           // deferred
     var sampleRateHz: Int?          // defaulted from recorder
     var bitDepth: String?           // "32-bit float", "24-bit"
@@ -143,4 +147,4 @@ Every property has a default or is optional, and every relationship is optional,
 ## Open questions
 
 - **Export format.** Markdown into Obsidian, JSON, or CSV — decide before real data goes in, since it shapes what's worth capturing.
-- **WeatherKit field set.** Which fields are worth storing beyond conditions, temperature, and wind. Humidity and pressure are cheap; whether anyone looks at them is the question.
+- ~~**WeatherKit field set.**~~ Decided Sept 2026: store conditions, temperature, wind speed and direction, humidity, pressure, cloud cover, and precipitation intensity. All come from the same WeatherKit call and are optional columns, so trimming later is the only migration risk.

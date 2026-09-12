@@ -21,7 +21,7 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 
-Decisions still open (from the spec): export format (step 7), WeatherKit field set (step 5). Photo storage decided in step 1: Photos-library references.
+Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided before step 5: all eight fields.
 
 ## Current step: 5 — Weather service
 
@@ -29,15 +29,9 @@ Decisions still open (from the spec): export format (step 7), WeatherKit field s
 
 A new recording opens with weather already filled from WeatherKit for its coordinates and start time, and the Weather section shows it. Runs right after the location fix, since it needs coordinates.
 
-### Decide first: the field set (open in the spec)
+### Field set (decided Sept 2026)
 
-The model already has `weatherSummary`, `temperatureC`, `windSpeedKph`, `windDirectionDeg`. WeatherKit's `CurrentWeather` also offers humidity, pressure, cloud cover, UV index, visibility, and precipitation intensity. Options, for the developer to choose before the step starts:
-
-- **Keep the four fields.** Nothing to add to the model; what the Shortcut captured. Cheapest, and nothing else is looked at today.
-- **Add humidity and pressure.** Two optional `Double` columns (`humidity` 0–1, `pressureHPa`). Cheap to store; pressure trends matter for wind and weather changes on multi-day trips; both export as two more lines.
-- **Add cloud cover and precipitation.** Useful for reading a recording's "feel" later (overcast dawn chorus versus clear), and rain is the one condition that ruins takes. `conditions` text mostly already says this.
-
-Any added field is one optional property on `Recording`, one round-trip test line, one row in `WeatherSection`, and one line in export. Adding an optional property migrates the on-device store automatically, so real recordings survive; this is the moment to explain lightweight migration versus a `VersionedSchema` and `SchemaMigrationPlan`, which renames and type changes would need. The spec's own question is whether anyone will look at them; the export format (step 7) decides what is worth carrying.
+Keep the four existing fields and add four optional `Double` columns to `Recording`: `humidity` (0–1), `pressureHPa`, `cloudCover` (0–1), `precipitationMmPerHour`. All come from one `CurrentWeather` value: `humidity`, `pressure` (a `Measurement<UnitPressure>`, convert to hectopascals), `cloudCover`, and `precipitationIntensity` (a `Measurement<UnitSpeed>`, convert to millimetres per hour). Adding optional properties migrates the on-device store automatically, so real recordings survive; this is the moment to explain lightweight migration versus a `VersionedSchema` and `SchemaMigrationPlan`, which renames and type changes would need. Update `ModelTests.recordingRoundTrips` for the new columns.
 
 ### Before starting (developer, in Xcode)
 
