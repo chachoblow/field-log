@@ -15,7 +15,7 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 2 | Recording list and manual create/edit form | Done | Sept 2026. Explicit saves on insert, delete, and form dismiss; UI smoke test covers the flow |
 | 3 | Gear screen, kit presets, tag autocomplete | Done | Sept 2026. 13 gear items, 3 presets seeded; reinstall to reseed |
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
-| 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Simulator gets a 401 from the token endpoint; verify on device |
+| 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
 | 6 | Markers and photos | **Current** | PhotosPicker in simulator; camera needs device |
 | 7 | Export | Todo | Decide format first (markdown to Obsidian likely); shapes which fields matter |
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
