@@ -23,6 +23,10 @@ xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17'
 # Boot / launch in simulator
 xcrun simctl boot "iPhone 17"
 xcrun simctl launch booted com.wesklein.FieldLog
+
+# UI smoke test (needs a fully booted, visible simulator or the runner is refused with RequestDenied)
+xcrun simctl boot "iPhone 17"; xcrun simctl bootstatus "iPhone 17" -b; open -a Simulator
+xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17' -parallel-testing-enabled NO test -only-testing:FieldLogUITests
 ```
 
 Pipe through `xcbeautify` if installed; otherwise grep for `error:` and `** BUILD FAILED **`. A successful build ends with `** BUILD SUCCEEDED **`.
@@ -41,7 +45,7 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 FieldLog.xcodeproj
 FieldLog/            app target sources
 FieldLogTests/       unit tests (Swift Testing)
-FieldLogUITests/     UI tests (rarely used)
+FieldLogUITests/     one XCTest smoke test of the recording flow; runs against the simulator's real store
 docs/design.md       spec — data model and scope
 docs/plan.md         roadmap plus detailed plan for the current step
 ```
@@ -66,6 +70,7 @@ Entities and their shape are defined in `docs/design.md`. Don't add entities, re
 - Match existing code style. When there is none yet, follow Swift API Design Guidelines and Xcode's default formatting.
 - Views are small and composable. Extract subviews before a body exceeds ~50 lines.
 - Prefer `@Query` and `@Environment(\.modelContext)` in views over view-model wrappers for simple CRUD.
+- Call `modelContext.save()` after inserts and deletes and in a form's `onDisappear`. Autosave only flushes on backgrounding and on a timer, so an abrupt kill loses unsaved edits.
 - Keep business logic (weather fetch, location, export) out of views — put it in plain types under `FieldLog/Services/`.
 - Every model change gets a unit test that inserts and reads back through an in-memory `ModelContainer`.
 - In tests, hold the `ModelContainer` in a local and take `mainContext` from it. Returning only the context lets the container deallocate, and the next insert traps inside SwiftData with a zero-second test failure.
