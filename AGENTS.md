@@ -43,7 +43,10 @@ FieldLog/            app target sources
 FieldLogTests/       unit tests (Swift Testing)
 FieldLogUITests/     UI tests (rarely used)
 docs/design.md       spec — data model and scope
+docs/plan.md         roadmap plus detailed plan for the current step
 ```
+
+Read `docs/plan.md` at the start of a task. When a step finishes, mark it done there and write the detailed plan for the next one.
 
 Organize sources by feature, not by type: `FieldLog/Models/`, `FieldLog/Recordings/`, `FieldLog/Gear/`, etc. Add folders as needed.
 
