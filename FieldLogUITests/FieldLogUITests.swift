@@ -1,9 +1,11 @@
 import XCTest
 
-/// Smoke test for the recording flow: create, apply a preset, tag, edit, relaunch,
-/// confirm everything survived, then swipe to delete. Runs against the simulator's
-/// real store. Set FIELDLOG_SCREENSHOT_DIR in the scheme's test environment to
-/// save screenshots along the way.
+/// Smoke test for the recording flow: create, wait for the location fix, apply a
+/// preset, tag, edit, relaunch, confirm everything survived, then swipe to delete.
+/// Runs against the simulator's real store. Before running, grant location access
+/// and set a simulated location from the command line (see AGENTS.md); the test
+/// cannot do that itself. Set FIELDLOG_SCREENSHOT_DIR in the scheme's test
+/// environment to save screenshots along the way.
 final class FieldLogUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -25,8 +27,10 @@ final class FieldLogUITests: XCTestCase {
 
         let place = app.textFields["Place"]
         XCTAssertTrue(place.waitForExistence(timeout: 5))
-        place.tap()
-        place.typeText("UI Test Cove\n")
+        XCTAssertTrue(app.staticTexts["Coordinates"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Locating…"].waitForNonExistence(timeout: 30))
+        save(app.screenshot(), as: "where")
+        clearAndType("UI Test Cove\n", into: place)
 
         app.buttons["Apply Preset"].tap()
         app.buttons["Field kit"].tap()
@@ -69,6 +73,16 @@ final class FieldLogUITests: XCTestCase {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", text, text))
             .firstMatch
+    }
+
+    /// Reverse geocoding may already have filled the field, so put the cursor at the
+    /// end, delete whatever is there, then type.
+    private func clearAndType(_ text: String, into field: XCUIElement) {
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)).tap()
+        if let existing = field.value as? String, existing != field.placeholderValue {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count))
+        }
+        field.typeText(text)
     }
 
     /// Form rows are created lazily, so an element below the fold does not exist until scrolled in.

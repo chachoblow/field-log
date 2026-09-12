@@ -4,6 +4,7 @@ import SwiftUI
 /// Root screen: every recording, newest first.
 struct RecordingListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(LocationService.self) private var locationService
     @Query(sort: \Recording.startedAt, order: .reverse) private var recordings: [Recording]
     @State private var path = NavigationPath()
     @State private var isShowingGear = false
@@ -50,6 +51,7 @@ struct RecordingListView: View {
         let recording = Recording()
         modelContext.insert(recording)
         try? modelContext.save()
+        locationService.fill(recording)
         path.append(recording)
     }
 
@@ -64,9 +66,11 @@ struct RecordingListView: View {
 #Preview("Recordings") {
     RecordingListView()
         .modelContainer(PreviewData.container)
+        .environment(LocationService())
 }
 
 #Preview("Empty") {
     RecordingListView()
         .modelContainer(try! ModelContainer.fieldLog(inMemory: true))
+        .environment(LocationService())
 }

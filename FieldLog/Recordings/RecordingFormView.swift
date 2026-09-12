@@ -30,6 +30,7 @@ struct RecordingFormView: View {
         RecordingFormView(recording: PreviewData.recordings[0])
     }
     .modelContainer(PreviewData.container)
+    .environment(LocationService())
 }
 
 #Preview("Without filename") {
@@ -37,4 +38,5 @@ struct RecordingFormView: View {
         RecordingFormView(recording: PreviewData.recordings[1])
     }
     .modelContainer(PreviewData.container)
+    .environment(LocationService())
 }

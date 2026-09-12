@@ -29,21 +29,6 @@ struct WhenSection: View {
     }
 }
 
-struct WhereSection: View {
-    @Bindable var recording: Recording
-
-    var body: some View {
-        Section("Where") {
-            TextField("Place", text: $recording.placeName.orEmpty)
-            if let latitude = recording.latitude, let longitude = recording.longitude {
-                LabeledContent("Coordinates") {
-                    Text("\(latitude, format: .number.precision(.fractionLength(4))), \(longitude, format: .number.precision(.fractionLength(4)))")
-                }
-            }
-        }
-    }
-}
-
 struct WeatherSection: View {
     let recording: Recording
 

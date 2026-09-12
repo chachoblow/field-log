@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct FieldLogApp: App {
     private let container: ModelContainer
+    @State private var locationService = LocationService()
 
     init() {
         do {
@@ -24,6 +25,7 @@ struct FieldLogApp: App {
     var body: some Scene {
         WindowGroup {
             RecordingListView()
+                .environment(locationService)
         }
         .modelContainer(container)
     }

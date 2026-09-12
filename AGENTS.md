@@ -26,9 +26,15 @@ xcrun simctl launch booted com.wesklein.FieldLog
 
 # UI smoke test (needs a fully booted, visible simulator or the runner is refused with RequestDenied)
 xcrun simctl boot "iPhone 17"; xcrun simctl bootstatus "iPhone 17" -b; open -a Simulator
+# The test expects a location fix, so grant access and set a position first. Set the position
+# right before each run; it has been seen reset to Apple's default between runs.
+xcrun simctl privacy booted grant location com.wesklein.FieldLog
+xcrun simctl location booted set 38.0421,-122.9930
 xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17' -parallel-testing-enabled NO test -only-testing:FieldLogUITests
 # Prefix with TEST_RUNNER_FIELDLOG_SCREENSHOT_DIR=<dir> to have it save screenshots of each screen.
 ```
+
+To see the denied state, `xcrun simctl privacy booted revoke location com.wesklein.FieldLog` and relaunch. `reset` instead of `revoke` returns to "not determined" so the prompt shows again.
 
 `GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` (or delete the app on the device) before the next run, or the old rows stay.
 
