@@ -11,9 +11,9 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | # | Step | Status | Notes |
 |---|------|--------|-------|
 | 0 | Project setup: Xcode template, docs, paid developer account, verified device install | Done | Sept 2026 |
-| 1 | Data model: six SwiftData entities, seed gear, round-trip tests | **Current** | Replaces template `Item` |
-| 2 | Recording list and manual create/edit form | Todo | No auto-population yet; already beats the Shortcut on editing |
-| 3 | Gear screen, kit presets, tag autocomplete | Todo | Pure SwiftData/SwiftUI, no permissions |
+| 1 | Data model: six SwiftData entities, seed gear, round-trip tests | Done | Sept 2026. Photos are library references |
+| 2 | Recording list and manual create/edit form | **Current** | No auto-population yet; already beats the Shortcut on editing |
+| 3 | Gear screen, kit presets, tag autocomplete | Todo | Pure SwiftData/SwiftUI, no permissions. Needs the real gear list and preset contents from the developer |
 | 4 | Location service: Core Location + reverse geocoding | Todo | First Info.plist usage string; test with simulator location menu |
 | 5 | Weather service: WeatherKit | Todo | Needs WeatherKit capability in Xcode; decide field set |
 | 6 | Markers and photos | Todo | PhotosPicker in simulator; camera needs device |
@@ -23,63 +23,52 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 
 Decisions still open (from the spec): export format (step 7), WeatherKit field set (step 5). Photo storage decided in step 1: Photos-library references.
 
-## Current step: 1 — Data model
+## Current step: 2 — Recording list and manual create/edit form
 
 ### Goal
 
-Replace the template `Item` with the six entities from `docs/design.md`, seed the gear table on first launch, and prove every entity round-trips through an in-memory container. No UI beyond keeping the app launching.
+Make the app usable for manual logging: a list of recordings, a form to create and edit one, and swipe to delete. Every scalar field on `Recording` is editable. Nothing auto-populates yet, and gear and tag pickers wait for step 3.
 
 ### Deliverables
 
 ```
-FieldLog/Models/Recording.swift
-FieldLog/Models/Gear.swift
-FieldLog/Models/KitPreset.swift
-FieldLog/Models/Tag.swift
-FieldLog/Models/Marker.swift
-FieldLog/Models/Photo.swift
-FieldLog/Models/ModelContainer+FieldLog.swift   // schema + container factory, in-memory option
-FieldLog/Services/GearSeeder.swift              // inserts default gear + presets if the table is empty
-FieldLogTests/ModelTests.swift                  // one round-trip test per entity
-FieldLogTests/GearSeederTests.swift             // seeds once, is idempotent
+FieldLog/Recordings/RecordingListView.swift     // @Query list, newest first, + button, swipe to delete
+FieldLog/Recordings/RecordingRow.swift          // one list row: date, place or fallback, "no filename" badge
+FieldLog/Recordings/RecordingFormView.swift     // Form bound to one Recording; same view for create and edit
+FieldLog/Recordings/RecordingFormSections.swift // extracted section subviews if the form body passes ~50 lines
 ```
 
-Deleted: `FieldLog/Item.swift`. `ContentView` becomes a placeholder list of recordings so the app still launches.
+`ContentView.swift` is deleted; `FieldLogApp` shows `RecordingListView` directly.
 
 ### Tasks
 
-1. **Models.** One file per entity, matching the spec exactly. Every property defaulted or optional, every relationship optional, no `@Attribute(.unique)`. Inverses declared explicitly on one side of each many-to-many (`Recording.gear` ↔ `Gear.recordings`, `Recording.tags` ↔ `Tag.recordings`, `KitPreset.gear` ↔ `Gear.presets`). Cascade delete on `Recording.markers` and `Recording.photos`. Each model gets a memberwise-style `init` with defaults so tests and previews can build one in a line.
-2. **Container factory.** A single place that builds the `Schema` from all six types and returns a `ModelContainer`, with an `inMemory: Bool` parameter. `FieldLogApp` uses it for the real store; tests and previews use it in-memory. This replaces the closure currently inline in `FieldLogApp`.
-3. **Seeder.** `GearSeeder.seedIfNeeded(context:)` inserts the default gear and kit presets when the `Gear` table is empty and does nothing otherwise. Called once at launch. Seed data is a static list in the seeder, not a JSON file — it is small and changes rarely.
-4. **Photo storage decision.** Decided: reference the Photos library. `Photo.assetIdentifier` holds a `PHAsset.localIdentifier`. No Photos framework work in this step; just the field.
-5. **Tests.** For each entity: create, insert, save, fetch through a fresh in-memory container, assert fields and relationships survive. Plus: cascade delete removes markers and photos but not gear or tags; seeder is idempotent across two calls.
-6. **App still launches.** `ContentView` shows an empty `List` of recordings with a `@Query`. Nothing else.
-7. **Build, test, commit.** `xcodebuild ... build` and `... test -only-testing:FieldLogTests` both pass. One commit, or one per numbered task if they are large.
+1. **List.** `@Query(sort: \Recording.startedAt, order: .reverse)`. Each row is a `NavigationLink(value: recording)` inside a `NavigationStack` with `navigationDestination(for: Recording.self)` pushing the form. `onDelete` removes from the context. Empty state uses `ContentUnavailableView` with a one-line hint.
+2. **Row.** Start date and time on the first line. Second line is place name, or "No location" in secondary style. A small "No filename" badge when `filename` is nil or empty, per the spec.
+3. **Create.** The + button inserts a `Recording()` (defaults `startedAt` to now), then appends it to the navigation path so the form opens immediately. There is no cancel: a new recording exists once created and can be swiped away from the list. This keeps create and edit one code path and matches the spec's "editable at any time".
+4. **Form.** `@Bindable var recording: Recording`, edits go straight to the model and the main context autosaves. Sections:
+   - *When*: `DatePicker` for `startedAt`; `endedAt` as a toggle that reveals a second picker when on.
+   - *Where*: `placeName` text field. Latitude and longitude shown read-only if set, otherwise hidden. Step 4 fills them.
+   - *Weather*: read-only summary if any weather field is set, otherwise the section is hidden. Step 5 fills them.
+   - *File*: `filename` text field; `sampleRateHz` picker (44100, 48000, 96000, none); `bitDepth` picker ("32-bit float", "24-bit", "16-bit", none).
+   - *Capture*: `micTechnique` text field, `captureDescription` text editor, `isCompromised` toggle.
+   - *Review*: `notes` text editor, `rating` picker (none, 1–5).
+   Optional string fields bind through a small `Binding` helper that maps empty text to nil so the "No filename" badge stays honest.
+5. **Previews.** Each view gets a `#Preview` using `ModelContainer.fieldLog(inMemory: true)` with two sample recordings inserted, one with a filename and one without.
+6. **Tests.** No model changes, so no new model tests. If task 4's empty-to-nil binding helper lives in its own type, give it a unit test. Views are not unit tested.
+7. **Build, test, commit.** Build and unit tests pass from the command line. Manual check in the simulator: create a recording, edit several fields, relaunch the app, confirm the edits survived, swipe to delete.
 
-### Seed data
+### Xcode and SwiftUI concepts this step introduces
 
-Known recorders:
-
-| Name | Type | Default sample rate | Default bit depth |
-|------|------|--------------------:|-------------------|
-| Zoom F3 | recorder | 48000 | 32-bit float |
-| Zoom H5studio | recorder | 48000 | 32-bit float |
-
-**Needs input:** the actual mics, windshields, mounts, and accessories, and the kit preset names and contents ("full kit", "minimal 3.5mm" are mentioned in the spec). Fill this in before or during task 3; until then the seeder ships with recorders only and placeholder presets are omitted.
-
-### Xcode concepts this step introduces
-
-Explained in context as they come up, listed here so nothing is skipped:
-
-- **Target vs scheme.** `FieldLog` (app) and `FieldLogTests` (unit test bundle) are targets; the `FieldLog` scheme is what builds and tests them together.
-- **Synchronized folder groups.** Xcode 16+ picks up new files under `FieldLog/` automatically; no project-file edits to add `Models/` or `Services/`.
-- **`@Model`, `Schema`, `ModelContainer`, `ModelContext`.** The SwiftData stack: class annotation, the list of types, the store, and the unit of work.
-- **In-memory containers** for tests, and why tests never touch the on-disk store.
-- **`@testable import`** and how the test target sees app-target types.
+- **`NavigationStack` with a typed path** and `navigationDestination(for:)`, versus the template's `NavigationSplitView`.
+- **`@Bindable`** for editing a `@Model` object's properties from a form.
+- **Main-context autosave**: why the form has no Save button.
+- **`Form` and `Section`** as the standard settings-style editing layout.
+- **`ContentUnavailableView`** for empty states.
+- **Previews with sample data** and why they use the in-memory container.
 
 ### Done when
 
-- All six models compile with no CloudKit-rule violations.
-- Tests pass from the command line.
-- App launches in the simulator to an empty recordings list.
-- `Item.swift` is gone and the roadmap row is marked Done.
+- Build and unit tests pass.
+- A recording can be created, every field edited, and the edits survive an app relaunch.
+- Rows without a filename show the badge; swipe to delete works.
+- `ContentView.swift` is gone and the roadmap row is marked Done.
