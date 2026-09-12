@@ -20,6 +20,26 @@ struct GearSeederTests {
         #expect(recorder.defaultBitDepth == "32-bit float")
     }
 
+    @Test func seedsEveryTypeAndAllPresets() throws {
+        let container = try ModelContainer.fieldLog(inMemory: true)
+        let context = container.mainContext
+
+        try GearSeeder.seedIfNeeded(context: context)
+
+        let gear = try context.fetch(FetchDescriptor<Gear>())
+        #expect(gear.count == 13)
+        #expect(Set(gear.map(\.type)) == ["recorder", "mic", "windshield", "mount", "accessory"])
+        #expect(Set(gear.map(\.name)).count == gear.count, "gear names must be unique")
+
+        let presets = try context.fetch(FetchDescriptor<KitPreset>())
+        #expect(presets.count == 3)
+        for seed in GearSeeder.presets {
+            let preset = try #require(presets.first { $0.name == seed.name })
+            #expect(Set((preset.gear ?? []).map(\.name)) == Set(seed.gearNames), "every gear name in \(seed.name) must resolve")
+            #expect(preset.gear?.contains { $0.type == "recorder" } == true, "\(seed.name) needs a recorder")
+        }
+    }
+
     @Test func secondCallIsNoOp() throws {
         let container = try ModelContainer.fieldLog(inMemory: true)
         let context = container.mainContext

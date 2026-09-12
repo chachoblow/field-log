@@ -19,10 +19,30 @@ enum GearSeeder {
     static let gear: [GearSeed] = [
         GearSeed(name: "Zoom F3", type: "recorder", defaultSampleRateHz: 48_000, defaultBitDepth: "32-bit float"),
         GearSeed(name: "Zoom H5studio", type: "recorder", defaultSampleRateHz: 48_000, defaultBitDepth: "32-bit float"),
+        GearSeed(name: "LOM basicUcho", type: "mic"),
+        GearSeed(name: "LOM mikroUši", type: "mic"),
+        GearSeed(name: "LOM mikroUši Pro", type: "mic"),
+        GearSeed(name: "LOM Geofón", type: "mic"),
+        GearSeed(name: "Zoom H5studio built-in mics", type: "mic"),
+        GearSeed(name: "Bubblebee Industries The Windkiller", type: "windshield"),
+        GearSeed(name: "Bubblebee Industries Windbubbles", type: "windshield"),
+        GearSeed(name: "Zoom WSH-5s “hairy” windscreen", type: "windshield"),
+        GearSeed(name: "mikroUši clip", type: "mount"),
+        GearSeed(name: "basicUcho mount", type: "mount"),
+        GearSeed(name: "Anker power bank", type: "accessory"),
     ]
 
-    /// Empty until the real mic, windshield, mount, and accessory list is known.
-    static let presets: [PresetSeed] = []
+    static let presets: [PresetSeed] = [
+        PresetSeed(name: "Heavy duty kit", gearNames: [
+            "Zoom F3", "LOM basicUcho", "Bubblebee Industries The Windkiller", "basicUcho mount", "Anker power bank",
+        ]),
+        PresetSeed(name: "Field kit", gearNames: [
+            "Zoom F3", "LOM mikroUši Pro", "Bubblebee Industries Windbubbles", "mikroUši clip", "Anker power bank",
+        ]),
+        PresetSeed(name: "Minimal kit", gearNames: [
+            "Zoom H5studio", "Zoom H5studio built-in mics", "Zoom WSH-5s “hairy” windscreen",
+        ]),
+    ]
 
     @discardableResult
     static func seedIfNeeded(context: ModelContext) throws -> Bool {
