@@ -5,6 +5,7 @@ import SwiftUI
 struct RecordingListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(LocationService.self) private var locationService
+    @Environment(WeatherFetcher.self) private var weatherFetcher
     @Query(sort: \Recording.startedAt, order: .reverse) private var recordings: [Recording]
     @State private var path = NavigationPath()
     @State private var isShowingGear = false
@@ -51,8 +52,13 @@ struct RecordingListView: View {
         let recording = Recording()
         modelContext.insert(recording)
         try? modelContext.save()
-        locationService.fill(recording)
         path.append(recording)
+        Task {
+            await locationService.fill(recording).value
+            if recording.latitude != nil {
+                weatherFetcher.fill(recording)
+            }
+        }
     }
 
     private func deleteRecordings(at offsets: IndexSet) {
@@ -67,10 +73,12 @@ struct RecordingListView: View {
     RecordingListView()
         .modelContainer(PreviewData.container)
         .environment(LocationService())
+        .environment(WeatherFetcher())
 }
 
 #Preview("Empty") {
     RecordingListView()
         .modelContainer(try! ModelContainer.fieldLog(inMemory: true))
         .environment(LocationService())
+        .environment(WeatherFetcher())
 }

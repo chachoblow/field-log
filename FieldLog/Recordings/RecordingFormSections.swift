@@ -29,42 +29,6 @@ struct WhenSection: View {
     }
 }
 
-struct WeatherSection: View {
-    let recording: Recording
-
-    private var hasWeather: Bool {
-        recording.weatherSummary != nil
-            || recording.temperatureC != nil
-            || recording.windSpeedKph != nil
-            || recording.windDirectionDeg != nil
-    }
-
-    var body: some View {
-        if hasWeather {
-            Section("Weather") {
-                if let summary = recording.weatherSummary {
-                    LabeledContent("Conditions", value: summary)
-                }
-                if let temperature = recording.temperatureC {
-                    LabeledContent("Temperature") {
-                        Text(Measurement(value: temperature, unit: UnitTemperature.celsius), format: .measurement(width: .abbreviated))
-                    }
-                }
-                if let speed = recording.windSpeedKph {
-                    LabeledContent("Wind") {
-                        Text(Measurement(value: speed, unit: UnitSpeed.kilometersPerHour), format: .measurement(width: .abbreviated))
-                    }
-                }
-                if let direction = recording.windDirectionDeg {
-                    LabeledContent("Wind direction") {
-                        Text("\(direction, format: .number.precision(.fractionLength(0)))°")
-                    }
-                }
-            }
-        }
-    }
-}
-
 struct FileSection: View {
     @Bindable var recording: Recording
 

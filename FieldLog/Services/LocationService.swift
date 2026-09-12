@@ -32,12 +32,17 @@ final class LocationService {
 
     /// Fills `latitude` and `longitude`, then reverse geocodes into `placeName`.
     /// The place name is written only if the user has not typed one, unless
-    /// `replacingPlaceName` is set. Cancels any fill still in flight.
-    func fill(_ recording: Recording, replacingPlaceName: Bool = false) {
+    /// `replacingPlaceName` is set. Cancels any fill still in flight. Returns
+    /// the task so a caller can wait for the fix without this service knowing
+    /// what happens next.
+    @discardableResult
+    func fill(_ recording: Recording, replacingPlaceName: Bool = false) -> Task<Void, Never> {
         task?.cancel()
-        task = Task {
+        let task = Task {
             await run(recording, replacingPlaceName: replacingPlaceName)
         }
+        self.task = task
+        return task
     }
 
     private func run(_ recording: Recording, replacingPlaceName: Bool) async {

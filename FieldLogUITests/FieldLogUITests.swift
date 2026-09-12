@@ -35,9 +35,10 @@ final class FieldLogUITests: XCTestCase {
         app.buttons["Apply Preset"].tap()
         app.buttons["Field kit"].tap()
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
-        XCTAssertTrue(containing("48 kHz", in: app).waitForExistence(timeout: 5))
 
         let filename = app.textFields["Filename"]
+        scroll(app, until: filename)
+        XCTAssertTrue(containing("48 kHz", in: app).waitForExistence(timeout: 5))
         filename.tap()
         filename.typeText("UITEST01.WAV\n")
 
@@ -58,8 +59,10 @@ final class FieldLogUITests: XCTestCase {
         let row = app.staticTexts["UI Test Cove"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
-        XCTAssertEqual(app.textFields["Filename"].value as? String, "UITEST01.WAV")
-        XCTAssertTrue(containing("Zoom F3", in: app).exists)
+        XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
+        let savedFilename = app.textFields["Filename"]
+        scroll(app, until: savedFilename)
+        XCTAssertEqual(savedFilename.value as? String, "UITEST01.WAV")
         scroll(app, until: app.staticTexts["uitest"])
         XCTAssertTrue(app.staticTexts["uitest"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
