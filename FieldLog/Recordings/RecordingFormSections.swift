@@ -83,26 +83,13 @@ struct WeatherSection: View {
 struct FileSection: View {
     @Bindable var recording: Recording
 
-    private static let sampleRates = [44_100, 48_000, 96_000]
-    private static let bitDepths = ["32-bit float", "24-bit", "16-bit"]
-
     var body: some View {
         Section("File") {
             TextField("Filename", text: $recording.filename.orEmpty)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            Picker("Sample rate", selection: $recording.sampleRateHz) {
-                Text("None").tag(Int?.none)
-                ForEach(Self.sampleRates, id: \.self) { rate in
-                    Text("\(Double(rate) / 1000, format: .number) kHz").tag(Int?.some(rate))
-                }
-            }
-            Picker("Bit depth", selection: $recording.bitDepth) {
-                Text("None").tag(String?.none)
-                ForEach(Self.bitDepths, id: \.self) { depth in
-                    Text(depth).tag(String?.some(depth))
-                }
-            }
+            SampleRatePicker(selection: $recording.sampleRateHz)
+            BitDepthPicker(selection: $recording.bitDepth)
         }
     }
 }

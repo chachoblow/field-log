@@ -13,9 +13,11 @@ struct RecordingFormView: View {
             WhenSection(recording: recording)
             WhereSection(recording: recording)
             WeatherSection(recording: recording)
+            GearSection(recording: recording)
             FileSection(recording: recording)
             CaptureSection(recording: recording)
             ReviewSection(recording: recording)
+            TagsSection(recording: recording)
         }
         .navigationTitle(Text(recording.startedAt, format: .dateTime.month().day().year()))
         .navigationBarTitleDisplayMode(.inline)

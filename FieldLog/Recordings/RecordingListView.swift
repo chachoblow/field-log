@@ -5,7 +5,8 @@ import SwiftUI
 struct RecordingListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Recording.startedAt, order: .reverse) private var recordings: [Recording]
-    @State private var path: [Recording] = []
+    @State private var path = NavigationPath()
+    @State private var isShowingGear = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -32,9 +33,15 @@ struct RecordingListView: View {
                 RecordingFormView(recording: recording)
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Gear", systemImage: "backpack") { isShowingGear = true }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button("New Recording", systemImage: "plus", action: addRecording)
                 }
+            }
+            .sheet(isPresented: $isShowingGear) {
+                GearListView()
             }
         }
     }

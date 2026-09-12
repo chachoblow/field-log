@@ -11,3 +11,14 @@ extension Binding where Value == String? {
         )
     }
 }
+
+extension Binding {
+    /// Presents an optional relationship array as non-optional. Reads `nil` as
+    /// empty and writes the array straight back; SwiftData maintains the inverse.
+    func orEmptyArray<Element>() -> Binding<[Element]> where Value == [Element]? {
+        Binding<[Element]>(
+            get: { wrappedValue ?? [] },
+            set: { wrappedValue = $0 }
+        )
+    }
+}

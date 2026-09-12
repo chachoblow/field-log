@@ -8,6 +8,11 @@ enum PreviewData {
     static let container: ModelContainer = {
         let container = try! ModelContainer.fieldLog(inMemory: true)
         let context = container.mainContext
+        try? GearSeeder.seedIfNeeded(context: context)
+        let presets = (try? context.fetch(FetchDescriptor<KitPreset>())) ?? []
+        let fieldKit = presets.first { $0.name == "Field kit" }?.gear ?? []
+        let birds = Tag(name: "birds")
+        context.insert(birds)
         context.insert(Recording(
             startedAt: .now.addingTimeInterval(-3_600),
             endedAt: .now.addingTimeInterval(-3_000),
@@ -23,7 +28,9 @@ enum PreviewData {
             bitDepth: "32-bit float",
             micTechnique: "ORTF",
             captureDescription: "Surf and gulls from the bluff.",
-            rating: 4
+            rating: 4,
+            gear: fieldKit,
+            tags: [birds]
         ))
         context.insert(Recording(
             startedAt: .now.addingTimeInterval(-86_400),
