@@ -401,7 +401,9 @@
 				DEVELOPMENT_TEAM = YNFZSX95R2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "FieldLog takes photos of the recording setup.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FieldLog records where each recording was made.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -435,7 +437,9 @@
 				DEVELOPMENT_TEAM = YNFZSX95R2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "FieldLog takes photos of the recording setup.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FieldLog records where each recording was made.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
