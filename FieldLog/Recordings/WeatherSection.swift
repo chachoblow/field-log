@@ -58,12 +58,18 @@ private struct WeatherRows: View {
         }
         if let temperature = recording.temperatureC {
             LabeledContent("Temperature") {
-                Text(Measurement(value: temperature, unit: UnitTemperature.celsius), format: .measurement(width: .abbreviated))
+                Text(
+                    Measurement(value: temperature, unit: UnitTemperature.celsius),
+                    format: .measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(0)))
+                )
             }
         }
         if let speed = recording.windSpeedKph {
             LabeledContent("Wind") {
-                Text(Measurement(value: speed, unit: UnitSpeed.kilometersPerHour), format: .measurement(width: .abbreviated))
+                Text(
+                    Measurement(value: speed, unit: UnitSpeed.kilometersPerHour),
+                    format: .measurement(width: .abbreviated, numberFormatStyle: .number.precision(.fractionLength(0)))
+                )
             }
         }
         if let direction = recording.windDirectionDeg {
@@ -78,7 +84,11 @@ private struct WeatherRows: View {
         }
         if let pressure = recording.pressureHPa {
             LabeledContent("Pressure") {
-                Text(Measurement(value: pressure, unit: UnitPressure.hectopascals), format: .measurement(width: .abbreviated))
+                // `.asProvided` keeps hPa; the locale default converts to psi in the US, which no forecast uses.
+                Text(
+                    Measurement(value: pressure, unit: UnitPressure.hectopascals),
+                    format: .measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(0)))
+                )
             }
         }
         if let cloudCover = recording.cloudCover {
