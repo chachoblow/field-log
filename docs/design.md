@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is deferred and reconciled later against the WAV's BWF origination time. Photos are references into the Photos library, not copies. Sync is off but the model is written CloudKit-compatible from day one. Open: export format.
+FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is deferred and reconciled later against the WAV's BWF origination time. Photos are downscaled copies stored with the log; the Photos library is not involved. Sync is off but the model is written CloudKit-compatible from day one. Open: export format.
 
 ## Context
 
@@ -61,9 +61,11 @@ The file doesn't have a name until the recording stops, so the field is optional
 
 Both recorders are 32-bit float; level is set in post and the F3 has no gain control. An optional free-text note covers any future fixed-point recorder.
 
-### Photos are Photos-library references, not copies
+### Photos are stored copies, not Photos-library references
 
-A `Photo` stores a `PHAsset.localIdentifier`. The library stays the single home for photos, with Live Photo data, edits, and iCloud Photos backup intact, and nothing is duplicated. Viewing fetches the image from the library on demand; export fetches the bytes on-device and writes a copy alongside the exported record. The cost is that a photo deleted from the library becomes a placeholder in the app. That is a missing context shot, not data loss, and the developer controls the library, so it is acceptable.
+Decided September 2026, reversing the original plan. A `Photo` holds a JPEG downscaled to 2000 px on the long side (a few hundred KB) in SwiftData external storage, plus the capture date. Photos taken for a log belong to the log: they are captured with the system camera hosted in the app, or copied in from the library through the picker, and they travel with the recording — into device backups now, into CloudKit as assets later, and into exports without touching the library. Viewing needs no permission, and nothing turns into a placeholder if the library changes. Supplementary shots of the setup can still live in Photos, taken with the Camera app; the timestamp and location make them easy to find, but they are not part of the log.
+
+The original reference design (store a `PHAsset.localIdentifier`, fetch on demand) was built first and dropped because Apple exposes less than assumed: there is no way to open Photos at a specific asset, thumbnails need library read permission, identifiers are per device so they would not survive sync, and a deleted original left a placeholder. Live Photos become stills in the app; that is acceptable.
 
 ### CloudKit-compatible model with sync off
 
@@ -126,8 +128,8 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
 }
 
 @Model final class Photo {
-    var assetIdentifier: String = "" // PHAsset.localIdentifier in the Photos library
-    var takenAt: Date?
+    @Attribute(.externalStorage) var imageData: Data?  // JPEG, ≤ 2000 px long side
+    var takenAt: Date?                                 // EXIF date, or capture time
     var recording: Recording?
 }
 ```

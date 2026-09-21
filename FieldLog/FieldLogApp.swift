@@ -13,7 +13,6 @@ struct FieldLogApp: App {
     private let container: ModelContainer
     @State private var locationService = LocationService()
     @State private var weatherFetcher = WeatherFetcher()
-    @State private var photoLibrary = PhotoLibrary()
 
     init() {
         do {
@@ -29,7 +28,6 @@ struct FieldLogApp: App {
             RecordingListView()
                 .environment(locationService)
                 .environment(weatherFetcher)
-                .environment(photoLibrary)
         }
         .modelContainer(container)
     }

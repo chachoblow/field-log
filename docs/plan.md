@@ -16,12 +16,12 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 3 | Gear screen, kit presets, tag autocomplete | Done | Sept 2026. 13 gear items, 3 presets seeded; reinstall to reseed |
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
 | 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
-| 6 | Markers and photos | Done | Sept 2026. Markers at `now - startedAt` with `m:ss` labels; photos via `PhotosPicker` + `PHImageManager` thumbnails, placeholder when the asset is gone. Camera deferred to step 8 |
+| 6 | Markers and photos | Done | Sept 2026. Markers at `now - startedAt` with `m:ss` labels. Photos are stored copies (≤ 2000 px JPEG in external storage) from the system camera or the library picker, with a full-size viewer; the library-reference design was built first and replaced. Camera needs `NSCameraUsageDescription` and a device |
 | 7 | Export | **Current** | Decide format first (markdown to Obsidian likely); shapes which fields matter |
 | 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 
-Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields. Camera capture decided in step 6: deferred to step 8, since it needs the device and `UIImagePickerController`.
+Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields. Photo storage revised in step 6: copies in the store, not library references (see `docs/design.md`).
 
 ## Current step: 7 — Export
 
@@ -37,13 +37,12 @@ Recommendation to discuss: markdown for the human-facing copy, with JSON added l
 
 ### Goal
 
-From a recording's form, share that recording as a file (or files) in the chosen format, with attached photos exported as copies alongside it. Every stored field appears in the output; nothing is invented.
+From a recording's form, share that recording as a file (or files) in the chosen format, with its stored photos written alongside it. Every stored field appears in the output; nothing is invented.
 
 ### Deliverables
 
 ```
 FieldLog/Services/RecordingExporter.swift     // pure: Recording -> document text; unit tested
-FieldLog/Services/PhotoExporter.swift          // fetches full-size image data for a Photo's asset (needs library read access, already in place)
 FieldLog/Recordings/ExportButton.swift         // toolbar ShareLink / fileExporter on the form
 FieldLogTests/RecordingExporterTests.swift     // golden-string tests over a fully populated recording and an empty one
 ```
@@ -51,7 +50,7 @@ FieldLogTests/RecordingExporterTests.swift     // golden-string tests over a ful
 ### Tasks
 
 1. **Document text.** `RecordingExporter.render(_:)` builds the file body from a `Recording`. Keep it a pure function over the model so tests can compare against a golden string. Markers as `m:ss — note` lines (reuse `MarkerOffset.label`). Optional fields that are nil are omitted, not written as empty.
-2. **Photos.** `PhotoExporter` uses `PHImageManager.requestImageDataAndOrientation` (or `PHAssetResourceManager` for the original bytes) to copy each attached asset to a temporary folder next to the document, named from the recording's start time plus an index. Missing assets are skipped and listed in the summary.
+2. **Photos.** Write each `Photo.imageData` JPEG to a temporary folder next to the document, named from the recording's start time plus an index. No library access is involved.
 3. **Sharing.** `ShareLink` with a `Transferable` folder or zip, or `.fileExporter` with a `FileDocument`, from the form's toolbar. Prefer `ShareLink`: it reaches Files, AirDrop, and the Obsidian app's share extension without extra code. Zip if more than one file must travel together (`NSFileCoordinator` + `forReadingItemAt:options:.forUploading` produces a zip without a library).
 4. **Tests.** Golden-string tests for the renderer. Photo export and sharing are checked by hand on the simulator (seed with `xcrun simctl addmedia`).
 5. **Build, test, commit.** Then step 8: install on the phone, log real recordings, add camera capture if photos from the library turn out to be a detour.
@@ -60,7 +59,6 @@ FieldLogTests/RecordingExporterTests.swift     // golden-string tests over a ful
 
 - **`Transferable` and `ShareLink`**: how SwiftUI hands data to the share sheet without UIKit.
 - **Temporary and security-scoped files**: `FileManager.temporaryDirectory`, and why files for the share sheet live there.
-- **`PHAssetResourceManager`** vs `PHImageManager` for original bytes.
 
 ### Done when
 

@@ -3,14 +3,16 @@ import SwiftData
 
 @Model
 final class Photo {
-    /// `PHAsset.localIdentifier` of a photo in the user's Photos library.
-    /// The app references library photos rather than copying them; a deleted original shows as a placeholder.
-    var assetIdentifier: String = ""
+    /// A JPEG downscaled at import (see `PhotoImporter`). The app owns the
+    /// bytes, so viewing needs no Photos permission and nothing goes missing
+    /// if the library changes. External storage keeps the blob out of the
+    /// SQLite file; CloudKit would sync it as an asset.
+    @Attribute(.externalStorage) var imageData: Data?
     var takenAt: Date?
     var recording: Recording?
 
-    init(assetIdentifier: String = "", takenAt: Date? = nil) {
-        self.assetIdentifier = assetIdentifier
+    init(imageData: Data? = nil, takenAt: Date? = nil) {
+        self.imageData = imageData
         self.takenAt = takenAt
     }
 }

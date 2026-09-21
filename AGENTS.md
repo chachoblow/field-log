@@ -7,7 +7,7 @@ Personal iOS app for logging metadata about field recordings. Single user, singl
 - Swift, SwiftUI, SwiftData. iOS 26 SDK, Xcode 26.
 - Swift Testing for unit tests (`@Test`, `#expect`). XCTest only for UI tests.
 - No third-party dependencies unless explicitly requested.
-- No UIKit unless SwiftUI genuinely lacks the capability; say so in the PR/summary if you use it.
+- No UIKit unless SwiftUI genuinely lacks the capability; say so in the PR/summary if you use it. The one existing use is `CameraPicker` (`UIImagePickerController`): SwiftUI has no camera view.
 
 ## Commands
 
@@ -38,7 +38,7 @@ To see the denied state, `xcrun simctl privacy booted revoke location com.weskle
 
 If the UI smoke test fails partway, it leaves its "UI Test Cove" recording behind and the next run fails on a duplicate row; `xcrun simctl uninstall booted com.wesklein.FieldLog`, then `xcrun simctl install booted <path to FieldLog.app>` (newest under `DerivedData/FieldLog-*/Build/Products/Debug-iphonesimulator`), then grant location. Granting before the app is installed does not stick. Form rows below the fold don't exist to XCTest until scrolled in, so use the test's `scroll(_:until:)` before touching anything low on the form. The template `FieldLogUITestsLaunchTests` runs once per orientation and leaves the device in landscape, so any test that runs after it must set `XCUIDevice.shared.orientation = .portrait` first.
 
-Driving `PhotosPicker` from XCTest works: its cells are `app.images` labelled `"Photo, <date>"`, the confirm button is "Done", and both must be tapped via `coordinate(...)` because the remote view reports them as not hittable. `xcrun simctl addmedia booted <image>` seeds a photo; `xcrun simctl privacy booted reset photos com.wesklein.FieldLog` brings the permission prompt back (its buttons are on `XCUIApplication(bundleIdentifier: "com.apple.springboard")`).
+Driving `PhotosPicker` from XCTest works: its cells are `app.images` labelled `"Photo, <date>"`, the confirm button is "Done", and both must be tapped via `coordinate(...)` because the remote view reports them as not hittable. `xcrun simctl addmedia booted <image>` seeds a photo (it has crashed once when run right after boot; the library persists across app reinstalls, so seed once). A stored thumbnail shows up as `app.images["Photo"]`; tap and long-press it by coordinate too.
 
 `GearSeeder` only runs against an empty store. After changing seed data, `xcrun simctl uninstall booted com.wesklein.FieldLog` before the next run, or the old rows stay. Never do this on the device: deleting the app deletes its SQLite store, recordings included. Once real recordings exist, changed seed data needs an in-app path (edit on the Gear screen, or a one-time migration), not a reinstall.
 
@@ -53,7 +53,7 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 - Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file. WeatherKit is already added (September 2026); `FieldLog/FieldLog.entitlements` is the file Xcode wrote for it.
 - To check what a build is signed with: `codesign -d --entitlements - --xml <path to FieldLog.app> | plutil -p -`. To check what the team profile allows: `security cms -D -i <.mobileprovision> | plutil -extract Entitlements xml1 -o - -`.
 - WeatherKit returning `WDSJWTAuthenticatorServiceListener.Errors Code=2` (a 401 from `weatherkit.apple.com/v3/token`, logged by `com.apple.weatherkit.authservice`) on both simulator and device means the App ID is not enabled for WeatherKit on Apple's side, even though the entitlement and profile look right. Xcode's capability checkbox alone was not enough in September 2026: the fix was developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → `com.wesklein.FieldLog` → Capabilities tab → tick WeatherKit → Save. It worked without a rebuild. To see the WeatherKit log on the simulator: `xcrun simctl spawn booted log show --last 5m --predicate 'subsystem == "com.apple.weather"' --style compact`.
-- Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use is already set. **Photos is not yet**: step 6 needs `INFOPLIST_KEY_NSPhotoLibraryUsageDescription` (suggested text: "FieldLog shows the photos you attach to a recording."). Until it is set, `PhotoLibrary` skips the permission prompt (which would crash without the key) and every thumbnail shows the missing-photo placeholder. To verify without touching the project file, pass the setting on the command line: `xcodebuild ... INFOPLIST_KEY_NSPhotoLibraryUsageDescription="..." test`.
+- Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use is set. **Camera is not yet**: the Take Photo button needs `INFOPLIST_KEY_NSCameraUsageDescription` (suggested text: "FieldLog takes photos of the recording setup."). `CameraPicker.isAvailable` hides the button until the key exists, because the permission prompt crashes without it, and on the simulator, which has no camera. The Photos-library string added in September 2026 is no longer used (photos are copied in through the picker, which needs no permission) and can be removed. To verify a usage string without touching the project file, pass it on the command line: `xcodebuild ... INFOPLIST_KEY_NSCameraUsageDescription="..." build`.
 
 ## Layout
 
@@ -88,6 +88,8 @@ Entities and their shape are defined in `docs/design.md`. Don't add entities, re
 - Prefer `@Query` and `@Environment(\.modelContext)` in views over view-model wrappers for simple CRUD.
 - Call `modelContext.save()` after inserts and deletes and in a form's `onDisappear`. Autosave only flushes on backgrounding and on a timer, so an abrupt kill loses unsaved edits.
 - Keep business logic (weather fetch, location, export) out of views — put it in plain types under `FieldLog/Services/`.
+- `.sheet`, `.fullScreenCover`, and other presentation modifiers go on a real view inside a `Section` (a row, the grid), never on the `Section` itself; there they silently never present.
+- The project's default actor isolation is `MainActor`. A type called from `Task.detached` (image decoding, anything CPU-bound) must be declared `nonisolated`, or the compiler warns now and errors under Swift 6.
 - Every model change gets a unit test that inserts and reads back through an in-memory `ModelContainer`.
 - In tests, hold the `ModelContainer` in a local and take `mainContext` from it. Returning only the context lets the container deallocate, and the next insert traps inside SwiftData with a zero-second test failure.
 - Inside `FieldLogTests`, write `FieldLog.Tag`. Swift Testing exports its own `Tag` type, and the bare name is ambiguous there.

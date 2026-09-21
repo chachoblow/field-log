@@ -2,14 +2,19 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
-/// Recording form section: thumbnails of the attached library photos, a picker
-/// to attach more, and a long-press menu to detach one. Detaching never touches
-/// the library; the photo is only a reference.
+/// Recording form section: thumbnails of the stored photos, a camera button
+/// and a library picker to add more, tap to view, long-press to remove.
+/// The sheet and camera cover hang off the rows that trigger them; on the
+/// `Section` itself they never present.
+/// Photos are copied into the store at import; the library is never read
+/// again afterwards, so no Photos permission is involved.
 struct PhotosSection: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(PhotoLibrary.self) private var library
     @Bindable var recording: Recording
     @State private var selection: [PhotosPickerItem] = []
+    @State private var isImporting = false
+    @State private var isShowingCamera = false
+    @State private var viewing: Photo?
 
     private var photos: [Photo] {
         (recording.photos ?? []).sorted { ($0.takenAt ?? .distantFuture) < ($1.takenAt ?? .distantFuture) }
@@ -20,51 +25,65 @@ struct PhotosSection: View {
             if !photos.isEmpty {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], spacing: 8) {
                     ForEach(photos) { photo in
-                        PhotoThumbnail(photo: photo)
-                            .contextMenu {
-                                Button("Remove Photo", systemImage: "trash", role: .destructive) { remove(photo) }
-                            }
+                        Button {
+                            viewing = photo
+                        } label: {
+                            PhotoThumbnail(photo: photo)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Remove Photo", systemImage: "trash", role: .destructive) { remove(photo) }
+                        }
                     }
                 }
                 .padding(.vertical, 4)
+                .sheet(item: $viewing) { photo in
+                    PhotoViewer(photo: photo)
+                }
             }
-            // `.shared()` is the overload whose item identifiers are `PHAsset.localIdentifier`s.
-            PhotosPicker(selection: $selection, matching: .images, photoLibrary: .shared()) {
+            if CameraPicker.isAvailable {
+                Button("Take Photo", systemImage: "camera") { isShowingCamera = true }
+                    .fullScreenCover(isPresented: $isShowingCamera) {
+                        CameraPicker { data in
+                            Task { await add(data, takenAt: .now) }
+                        }
+                        .ignoresSafeArea()
+                    }
+            }
+            PhotosPicker(selection: $selection, matching: .images) {
                 Label("Add Photos", systemImage: "photo.on.rectangle")
             }
-            .onChange(of: selection) { _, items in attach(items) }
-            accessNote
-        }
-    }
-
-    @ViewBuilder
-    private var accessNote: some View {
-        if !photos.isEmpty, library.authorization == .denied || library.authorization == .restricted {
-            Text("Thumbnails need Photos access. Turn it on in Settings › Apps › FieldLog.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func attach(_ items: [PhotosPickerItem]) {
-        guard !items.isEmpty else { return }
-        let identifiers = PhotoLibrary.newIdentifiers(
-            picked: items.map(\.itemIdentifier),
-            existing: (recording.photos ?? []).map(\.assetIdentifier)
-        )
-        let added = identifiers.map { Photo(assetIdentifier: $0) }
-        for photo in added {
-            modelContext.insert(photo)
-        }
-        recording.photos = (recording.photos ?? []) + added
-        try? modelContext.save()
-        selection = []
-        Task {
-            for photo in added {
-                photo.takenAt = await library.creationDate(for: photo.assetIdentifier)
+            .onChange(of: selection) { _, items in
+                Task { await attach(items) }
             }
-            try? modelContext.save()
+            if isImporting {
+                LabeledContent("Importing…") { ProgressView() }
+            }
         }
+    }
+
+    /// Picker items arrive as the original bytes (HEIC, JPEG, PNG…); each is
+    /// downscaled and stored, keeping its EXIF date when it has one.
+    private func attach(_ items: [PhotosPickerItem]) async {
+        guard !items.isEmpty else { return }
+        isImporting = true
+        for item in items {
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                await add(data, takenAt: nil)
+            }
+        }
+        selection = []
+        isImporting = false
+    }
+
+    /// `takenAt` overrides the image's own date; the camera passes now, since
+    /// its JPEG has no EXIF date yet.
+    private func add(_ data: Data, takenAt: Date?) async {
+        guard let imported = await Task.detached(operation: { PhotoImporter.importPhoto(data) }).value else { return }
+        let photo = Photo(imageData: imported.jpeg, takenAt: takenAt ?? imported.takenAt)
+        modelContext.insert(photo)
+        recording.photos = (recording.photos ?? []) + [photo]
+        try? modelContext.save()
     }
 
     private func remove(_ photo: Photo) {
@@ -74,37 +93,36 @@ struct PhotosSection: View {
     }
 }
 
-/// Square thumbnail loaded from the library on demand; a placeholder while
-/// loading, and a different one if the asset is gone or unreadable.
+/// Square thumbnail decoded from the stored JPEG at thumbnail size, off the
+/// main thread. A placeholder shows while decoding or if the data is missing.
 private struct PhotoThumbnail: View {
     let photo: Photo
-    @Environment(PhotoLibrary.self) private var library
     @Environment(\.displayScale) private var displayScale
-    @State private var image: UIImage?
-    @State private var isMissing = false
+    @State private var image: CGImage?
 
-    private static let side: CGFloat = 120
+    private static let side: CGFloat = 160
 
     var body: some View {
         Color(.secondarySystemFill)
             .aspectRatio(1, contentMode: .fit)
             .overlay {
                 if let image {
-                    Image(uiImage: image)
+                    Image(decorative: image, scale: displayScale)
                         .resizable()
                         .scaledToFill()
                 } else {
-                    Image(systemName: isMissing ? "photo.trianglebadge.exclamationmark" : "photo")
+                    Image(systemName: "photo")
                         .font(.title2)
                         .foregroundStyle(.secondary)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            .accessibilityLabel(isMissing ? "Missing photo" : "Photo")
-            .task(id: photo.assetIdentifier) {
-                let pixels = Self.side * displayScale
-                image = await library.thumbnail(for: photo.assetIdentifier, pixelSize: CGSize(width: pixels, height: pixels))
-                isMissing = image == nil
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .accessibilityLabel("Photo")
+            .task(id: photo.persistentModelID) {
+                guard let data = photo.imageData else { return }
+                let pixels = Int(Self.side * displayScale)
+                image = await Task.detached(operation: { PhotoImporter.cgImage(from: data, maxPixelSize: pixels) }).value
             }
     }
 }
@@ -116,5 +134,4 @@ private struct PhotoThumbnail: View {
         }
     }
     .modelContainer(PreviewData.container)
-    .environment(PhotoLibrary())
 }

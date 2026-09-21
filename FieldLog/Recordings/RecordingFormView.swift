@@ -34,7 +34,6 @@ struct RecordingFormView: View {
     .modelContainer(PreviewData.container)
     .environment(LocationService())
     .environment(WeatherFetcher())
-    .environment(PhotoLibrary())
 }
 
 #Preview("Without filename") {
@@ -44,5 +43,4 @@ struct RecordingFormView: View {
     .modelContainer(PreviewData.container)
     .environment(LocationService())
     .environment(WeatherFetcher())
-    .environment(PhotoLibrary())
 }

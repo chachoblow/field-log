@@ -74,13 +74,11 @@ struct RecordingListView: View {
         .modelContainer(PreviewData.container)
         .environment(LocationService())
         .environment(WeatherFetcher())
-        .environment(PhotoLibrary())
-}
+    }
 
 #Preview("Empty") {
     RecordingListView()
         .modelContainer(try! ModelContainer.fieldLog(inMemory: true))
         .environment(LocationService())
         .environment(WeatherFetcher())
-        .environment(PhotoLibrary())
-}
+    }

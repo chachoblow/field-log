@@ -121,13 +121,14 @@ struct ModelTests {
         let container = try ModelContainer.fieldLog(inMemory: true)
         let context = container.mainContext
         let taken = Date(timeIntervalSince1970: 1_800_000_100)
-        let photo = Photo(assetIdentifier: "ABC-123/L0/001", takenAt: taken)
+        let bytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10])
+        let photo = Photo(imageData: bytes, takenAt: taken)
         let recording = Recording(photos: [photo])
         context.insert(recording)
         try context.save()
 
         let fetched = try #require(try context.fetch(FetchDescriptor<Photo>()).first)
-        #expect(fetched.assetIdentifier == "ABC-123/L0/001")
+        #expect(fetched.imageData == bytes)
         #expect(fetched.takenAt == taken)
         #expect(fetched.recording?.persistentModelID == recording.persistentModelID)
     }
@@ -139,7 +140,7 @@ struct ModelTests {
             gear: [Gear(name: "Zoom F3", type: "recorder")],
             tags: [FieldLog.Tag(name: "birds")],
             markers: [Marker(offsetSeconds: 1, note: "a")],
-            photos: [Photo(assetIdentifier: "p")]
+            photos: [Photo(imageData: Data([0x01]))]
         )
         context.insert(recording)
         try context.save()

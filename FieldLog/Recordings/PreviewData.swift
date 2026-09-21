@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import SwiftUI
 
 /// In-memory container with two sample recordings for `#Preview` blocks.
 /// Never used by the running app.
@@ -36,7 +37,7 @@ enum PreviewData {
             gear: fieldKit,
             tags: [birds],
             markers: [Marker(offsetSeconds: 42, note: "plane overhead"), Marker(offsetSeconds: 318, note: "gull lands close")],
-            photos: [Photo(assetIdentifier: "not-in-this-library")]
+            photos: [Photo(imageData: sampleJPEG(.orange), takenAt: .now.addingTimeInterval(-3_500)), Photo(imageData: sampleJPEG(.teal), takenAt: .now.addingTimeInterval(-3_200))]
         ))
         context.insert(Recording(
             startedAt: .now.addingTimeInterval(-86_400),
@@ -45,6 +46,11 @@ enum PreviewData {
         ))
         return container
     }()
+
+    private static func sampleJPEG(_ color: Color) -> Data? {
+        let renderer = ImageRenderer(content: color.frame(width: 300, height: 200))
+        return renderer.cgImage.flatMap(PhotoImporter.jpegData)
+    }
 
     static var recordings: [Recording] {
         let descriptor = FetchDescriptor<Recording>(sortBy: [SortDescriptor(\.startedAt, order: .reverse)])
