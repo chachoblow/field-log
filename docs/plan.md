@@ -17,52 +17,45 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
 | 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
 | 6 | Markers and photos | Done | Sept 2026. Markers at `now - startedAt` with `m:ss` labels. Photos are stored copies (≤ 2000 px JPEG in external storage) from the system camera or the library picker, with a full-size viewer; the library-reference design was built first and replaced. Camera needs `NSCameraUsageDescription` and a device |
-| 7 | Export | **Current** | Decide format first (markdown to Obsidian likely); shapes which fields matter |
-| 8 | Field use and iteration | Todo | Install, log real recordings, fix what hurts |
+| 7 | Field use and iteration | **Current** | Install, log real recordings, fix what hurts |
+| 8 | Import the old Apple Notes entries | Todo | The app is the system of record, so the Shortcut's notes come in, not out. Shape it after step 7 has shown what real entries look like |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
+| — | Export | Deferred | No consumer today: the app replaces the notes setup rather than feeding it, and iCloud device backup already carries the store. Pick a format when something needs the data |
+| — | BWF filename matching | Possible | Fill `filename` by matching start time against the WAV's `bext` origination time. Typing the name is easy enough; revisit only if it becomes a chore |
 
-Decisions still open (from the spec): export format (step 7). Photo storage decided in step 1: Photos-library references. WeatherKit field set decided in step 5: all eight fields. Photo storage revised in step 6: copies in the store, not library references (see `docs/design.md`).
+Decisions from the spec: photo storage decided in step 1 (Photos-library references), revised in step 6 (copies in the store). WeatherKit field set decided in step 5 (all eight fields). Export format decided Sept 2026: deferred, no format chosen (see `docs/design.md`). Nothing is open.
 
-## Current step: 7 — Export
-
-### Decide first: the format
-
-This is the developer's call, not the agent's. The options, with what each costs:
-
-- **Markdown, one file per recording, into Obsidian.** Lands where notes already live and reads without tooling. YAML front matter carries the structured fields (date, coordinates, weather, gear, tags), the body carries description, markers, and notes, and photos are written next to the file and embedded with `![[...]]`. Cost: re-importing is lossy, so it is a publish, not a backup.
-- **JSON, one file with every recording.** Lossless, trivial to re-import or feed to a script that matches filenames against BWF origination times. Cost: not readable in Obsidian without a plugin.
-- **CSV.** Only worth it if a spreadsheet is the destination; markers and photos do not fit a row.
-
-Recommendation to discuss: markdown for the human-facing copy, with JSON added later if the BWF matching script wants it. Whatever is chosen, record it in `docs/design.md` under Open questions before starting.
+## Current step: 7 — Field use and iteration
 
 ### Goal
 
-From a recording's form, share that recording as a file (or files) in the chosen format, with its stored photos written alongside it. Every stored field appears in the output; nothing is invented.
+Use the app for real recordings instead of the Shortcut, and fix whatever gets in the way. Every capture feature is in; the unknowns now are the ones only real use surfaces: what is slow to enter, what is missing, what is wrong on a phone outdoors.
 
-### Deliverables
+### Before the first outing
 
-```
-FieldLog/Services/RecordingExporter.swift     // pure: Recording -> document text; unit tested
-FieldLog/Recordings/ExportButton.swift         // toolbar ShareLink / fileExporter on the form
-FieldLogTests/RecordingExporterTests.swift     // golden-string tests over a fully populated recording and an empty one
-```
+1. **Install from Xcode** onto the phone (Product → Run with the phone selected). This is the last reinstall that costs nothing: once real recordings exist, the app is never deleted from the device, because the SQLite store goes with it (see `AGENTS.md`, Data model rules).
+2. **Check that Take Photo appears** on the form on the phone. The camera usage string is set in the project; the button hides itself if the build somehow lacks it.
+3. **Check that location and weather fill in** on the phone with the app freshly opened outdoors. Weather needs a network connection at capture time; note whether that holds where recordings happen.
 
-### Tasks
+### During
 
-1. **Document text.** `RecordingExporter.render(_:)` builds the file body from a `Recording`. Keep it a pure function over the model so tests can compare against a golden string. Markers as `m:ss — note` lines (reuse `MarkerOffset.label`). Optional fields that are nil are omitted, not written as empty.
-2. **Photos.** Write each `Photo.imageData` JPEG to a temporary folder next to the document, named from the recording's start time plus an index. No library access is involved.
-3. **Sharing.** `ShareLink` with a `Transferable` folder or zip, or `.fileExporter` with a `FileDocument`, from the form's toolbar. Prefer `ShareLink`: it reaches Files, AirDrop, and the Obsidian app's share extension without extra code. Zip if more than one file must travel together (`NSFileCoordinator` + `forReadingItemAt:options:.forUploading` produces a zip without a library).
-4. **Tests.** Golden-string tests for the renderer. Photo export and sharing are checked by hand on the simulator (seed with `xcrun simctl addmedia`).
-5. **Build, test, commit.** Then step 8: install on the phone, log real recordings, add camera capture if photos from the library turn out to be a detour.
+Log every recording in the app. Keep a friction list here, in this section, as short lines:
 
-### Xcode and SwiftUI concepts this step introduces
+- (empty)
 
-- **`Transferable` and `ShareLink`**: how SwiftUI hands data to the share sheet without UIKit.
-- **Temporary and security-scoped files**: `FileManager.temporaryDirectory`, and why files for the share sheet live there.
+Rules for the list: write it down in the moment, one line per item, no fixing in the field. Things that belong on it: fields that are always the same and should default, taps that are hard with cold hands, anything typed twice, anything the Shortcut did that is missed, anything wrong in the weather or place name.
+
+### Fixing
+
+Work the list in small commits, one item each, with the usual unit test for any model change. Two constraints that did not exist before real data:
+
+- **No reinstall on the device.** Seed data changes need an in-app path or a migration.
+- **Schema changes must be additive** (new optional property, new entity). Renames and type changes need a SwiftData migration plan, so prefer not to.
+
+Items that turn out to be features rather than fixes get a roadmap row instead of a commit.
 
 ### Done when
 
-- Build and unit tests pass.
-- Sharing a recording produces a file in the chosen format with every stored field, plus copies of its photos.
-- The format decision is recorded in `docs/design.md`.
-- The roadmap row is marked Done.
+- A handful of real recordings are logged in the app and the Shortcut has not been used.
+- The friction list is worked down to items that are deliberately not being fixed, each with a one-line reason.
+- The detailed plan for step 8 (import) is written, informed by how the real entries compare to the old notes.

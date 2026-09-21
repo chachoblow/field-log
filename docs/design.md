@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is deferred and reconciled later against the WAV's BWF origination time. Photos are downscaled copies stored with the log; the Photos library is not involved. Sync is off but the model is written CloudKit-compatible from day one. Open: export format.
+FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is optional and typed once the file exists. Photos are downscaled copies stored with the log; the Photos library is not involved. Sync is off but the model is written CloudKit-compatible from day one. Export is deferred until something needs the data. No open questions.
 
 ## Context
 
@@ -55,7 +55,7 @@ Gear rarely changes and is a small fixed set, so it is seeded once and selected 
 
 ### Filename is deferred, not required
 
-The file doesn't have a name until the recording stops, so the field is optional and the list view highlights entries without one. Longer term the app stores start time precisely enough to match against BWF origination time when WAVs are imported on the Mac, at which point the field can be filled automatically.
+The file doesn't have a name until the recording stops, so the field is optional and the list view highlights entries without one. Typing the name afterwards is quick enough that nothing more is planned. A possible later addition: the recorder writes its start time into the WAV's BWF `bext` chunk, and `startedAt` is stored precisely enough to match against it, so the field could be filled automatically from imported WAVs. Decided September 2026 that this is not worth building unless typing the name becomes a chore.
 
 ### Gain is dropped
 
@@ -148,5 +148,5 @@ Every property has a default or is optional, and every relationship is optional,
 
 ## Open questions
 
-- **Export format.** Markdown into Obsidian, JSON, or CSV — decide before real data goes in, since it shapes what's worth capturing.
+- ~~**Export format.**~~ Decided Sept 2026: deferred, no format chosen. The app replaces the notes setup rather than feeding it, so there is no destination to export to; the old notes are imported, not the other way round. Backup is covered by iCloud device backup of the app container (the store and its external photo storage) and by CloudKit sync once it is on. If a consumer appears later, its needs pick the format.
 - ~~**WeatherKit field set.**~~ Decided Sept 2026: store conditions, temperature, wind speed and direction, humidity, pressure, cloud cover, and precipitation intensity. All come from the same WeatherKit call and are optional columns, so trimming later is the only migration risk.
