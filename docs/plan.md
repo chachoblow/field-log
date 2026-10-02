@@ -41,7 +41,15 @@ Use the app for real recordings instead of the Shortcut, and fix whatever gets i
 
 Log every recording in the app. Keep a friction list here, in this section, as short lines:
 
-- (empty)
+First round, October 2026, after a few real recordings:
+
+- "Ended" is not that useful; worth removing for simplicity.
+- "Marker" is not that useful either.
+- The app is generally not open during a recording or after it, so anything that depends on being there live is dead weight. This is the reason for the two lines above.
+- Keeping all the weather data is right, but the section should show a simpler display with the option to expand.
+- The ordering of the data entries can be reworked.
+- Show tags on the "Recordings" home screen when a recording has them.
+- The app has no icon.
 
 Rules for the list: write it down in the moment, one line per item, no fixing in the field. Things that belong on it: fields that are always the same and should default, taps that are hard with cold hands, anything typed twice, anything the Shortcut did that is missed, anything wrong in the weather or place name.
 
@@ -53,6 +61,20 @@ Work the list in small commits, one item each, with the usual unit test for any 
 - **Schema changes must be additive** (new optional property, new entity). Renames and type changes need a SwiftData migration plan, so prefer not to.
 
 Items that turn out to be features rather than fixes get a roadmap row instead of a commit.
+
+### Triage of the first round
+
+UI only, no schema risk, safe to work in any order:
+
+- **Weather summary with expand.** `WeatherSection` currently renders one `LabeledContent` per stored field. Collapse to a summary row and put the rest behind a disclosure.
+- **Section and field order.** `RecordingFormView` composes ten sections in a fixed order: When, Where, Weather, Gear, File, Capture, Markers, Photos, Review, Tags. Reordering is moving lines.
+- **Tags on the list row.** `RecordingRow` shows date, place, and the missing-filename badge. Adding tags reads an existing relationship.
+- **App icon.** `Assets.xcassets/AppIcon.appiconset` holds three empty 1024 px slots (light, dark, tinted) and no image. Needs artwork from the developer; dark and tinted can fall back to the light one.
+
+Needs a decision before any code, because neither is additive:
+
+- **Dropping "Ended"** and **dropping markers** both mean removing something the store already has: the `endedAt` column, and the `Marker` entity with its cascade rule, `MarkerOffset`, and two test files. Deleting a property or an entity is not an additive change, so it needs a SwiftData migration plan, and markers are also a stated goal in `docs/design.md` with a row in the ER diagram.
+- The cheap half is free and reversible: take both out of the form and leave the schema alone. An unused optional column and an unused entity cost nothing in the store, and the spec can be revised later once the form has been simple for a while.
 
 ### Done when
 
