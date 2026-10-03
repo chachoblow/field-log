@@ -1,12 +1,21 @@
 import SwiftData
 import SwiftUI
 
-/// One line in the recording list: when, where, and whether the file is named yet.
+/// One line in the recording list: when, where, any tags, and whether the file
+/// is named yet.
 struct RecordingRow: View {
     let recording: Recording
 
     private var hasFilename: Bool {
         !(recording.filename ?? "").isEmpty
+    }
+
+    /// Tag names in the same order the form's chips use, joined for one line.
+    private var tagNames: String? {
+        let names = (recording.tags ?? [])
+            .map(\.name)
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
     var body: some View {
@@ -26,6 +35,15 @@ struct RecordingRow: View {
             Text(recording.placeName ?? "No location")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            if let tagNames {
+                HStack(spacing: 4) {
+                    Image(systemName: "tag")
+                    Text(tagNames)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
         }
     }
 }
