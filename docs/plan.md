@@ -51,6 +51,10 @@ First round, October 2026, after a few real recordings:
 - Show tags on the "Recordings" home screen when a recording has them.
 - The app has no icon.
 
+Found while reworking the order, not from an outing:
+
+- "Started" defaults to now, which is the time the form was opened, not the time the recording began. Filling the entry afterwards means correcting it every time. Unfixed, and left for a decision, because every option costs something: leaving it is a correction per entry, rounding it hides the error, and asking on create slows the one screen that should be fast.
+
 Rules for the list: write it down in the moment, one line per item, no fixing in the field. Things that belong on it: fields that are always the same and should default, taps that are hard with cold hands, anything typed twice, anything the Shortcut did that is missed, anything wrong in the weather or place name.
 
 ### Fixing
@@ -64,17 +68,16 @@ Items that turn out to be features rather than fixes get a roadmap row instead o
 
 ### Triage of the first round
 
-Done:
+All seven items are worked. What changed:
 
 - **"Ended" and markers are gone, model included.** Decided October 2026 to make the model match the app rather than hide the fields and leave dead columns behind; the reasoning is a key decision in `docs/design.md`. Removed `endedAt`, the `Marker` entity, `MarkerOffset`, `MarkersSection`, the marker unit tests, and the marker steps in the UI smoke test, which now checks that mic technique survives a relaunch instead.
 - Correcting what an earlier version of this section claimed: deleting a property or an entity **is** inferable by SwiftData's automatic lightweight migration, because the new model has nowhere to put the old data. Renames and type changes are the ones needing a hand-written plan. Verified before shipping by opening a store written with the old schema against the new one: `ZENDEDAT` and `ZMARKER` are dropped, and recordings, gear, tags, and photos all survive, including the many-to-many join tables that get renumbered when an entity leaves the schema (`Z_5TAGS` became `Z_4TAGS` with all its rows).
+- **Weather is one summary line** (conditions, temperature, wind) with all eight stored readings behind a disclosure. The line is built by `WeatherSummary`, unit tested on shape rather than exact numbers because units follow the locale.
+- **The form is reordered** around being filled in after the recording: When, Capture, Gear, Tags, Photos, File, Where, Weather, Review. The auto-filled context moved below the typed fields, and the description leads the Capture section.
+- **The list row shows tags** when a recording has them.
+- **A placeholder icon is in.** Generated, not drawn: a flat waveform on a deep teal ground, light slot only, with iOS deriving the dark and tinted variants. Replace it with real artwork whenever.
 
-Still to do, UI only, no schema risk, safe in any order:
-
-- **Weather summary with expand.** `WeatherSection` currently renders one `LabeledContent` per stored field. Collapse to a summary row and put the rest behind a disclosure.
-- **Section and field order.** `RecordingFormView` composes nine sections in a fixed order: When, Where, Weather, Gear, File, Capture, Photos, Review, Tags. Reordering is moving lines.
-- **Tags on the list row.** `RecordingRow` shows date, place, and the missing-filename badge. Adding tags reads an existing relationship.
-- **App icon.** `Assets.xcassets/AppIcon.appiconset` holds three empty 1024 px slots (light, dark, tinted) and no image. Generating a simple placeholder, replaceable with real artwork later.
+The smoke test moved with the form, since it can only scroll downward and a row below the fold does not exist to it until reached. It now also checks the weather section renders and that the list row carries the tags.
 
 ### Before the next install on the phone
 

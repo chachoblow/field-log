@@ -26,6 +26,9 @@ xcrun simctl launch booted com.wesklein.FieldLog
 
 # UI smoke test (needs a fully booted, visible simulator or the runner is refused with RequestDenied)
 xcrun simctl boot "iPhone 17"; xcrun simctl bootstatus "iPhone 17" -b; open -a Simulator
+# `open -a Simulator` fails on this machine: Xcode 27 ships no Simulator.app in the bundle and
+# there is none in /Applications. The UI test runs fine against the booted device without it,
+# so boot, wait for bootstatus, and go. Reinstall the app first to clear the previous run's store.
 # The test expects a location fix, so grant access and set a position first. Set the position
 # right before each run; it has been seen reset to Apple's default between runs.
 xcrun simctl privacy booted grant location com.wesklein.FieldLog
