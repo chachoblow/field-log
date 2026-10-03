@@ -44,7 +44,7 @@ xcodebuild -scheme FieldLog -destination 'platform=iOS Simulator,name=iPhone 17'
 
 To see the denied state, `xcrun simctl privacy booted revoke location com.wesklein.FieldLog` and relaunch. `reset` instead of `revoke` returns to "not determined" so the prompt shows again.
 
-If the UI smoke test fails partway, it leaves its "UI Test Cove" recording behind and the next run fails on a duplicate row; `xcrun simctl uninstall booted com.wesklein.FieldLog`, then `xcrun simctl install booted <path to FieldLog.app>` (newest under `DerivedData/FieldLog-*/Build/Products/Debug-iphonesimulator`), then grant location. Granting before the app is installed does not stick. Form rows below the fold don't exist to XCTest until scrolled in, so use the test's `scroll(_:until:)` before touching anything low on the form. The template `FieldLogUITestsLaunchTests` runs once per orientation and leaves the device in landscape, so any test that runs after it must set `XCUIDevice.shared.orientation = .portrait` first.
+If the UI smoke test fails partway, it leaves its "UI Test Cove" recording behind and the next run fails on a duplicate row; `xcrun simctl uninstall booted com.wesklein.FieldLog`, then `xcrun simctl install booted <path to FieldLog.app>` (newest under `DerivedData/FieldLog-*/Build/Products/Debug-iphonesimulator`), then grant location. Granting before the app is installed does not stick. Form rows below the fold don't exist to XCTest until scrolled in, so use the test's `scroll(_:until:)` before touching anything low on the form. Scroll to the LAST row you need from a section, not the first: `scroll(_:until:)` stops the moment its target exists, which can leave the rows beneath it still unrendered. This has bitten the sample rate under the filename and the coordinates under the place field. Reordering the form's sections means reordering the test's steps to match, since it only ever swipes downward. The template `FieldLogUITestsLaunchTests` runs once per orientation and leaves the device in landscape, so any test that runs after it must set `XCUIDevice.shared.orientation = .portrait` first.
 
 Driving `PhotosPicker` from XCTest works: its cells are `app.images` labelled `"Photo, <date>"`, the confirm button is "Done", and both must be tapped via `coordinate(...)` because the remote view reports them as not hittable. `xcrun simctl addmedia booted <image>` seeds a photo (it has crashed once when run right after boot; the library persists across app reinstalls, so seed once). A stored thumbnail shows up as `app.images["Photo"]`; tap and long-press it by coordinate too.
 
@@ -95,6 +95,14 @@ All SwiftData models must stay CloudKit-compatible even though sync is off for n
 - All relationships are optional.
 - No `@Attribute(.unique)`.
 - No non-optional relationship arrays — use `[Foo]? = []` or `[Foo] = []` per SwiftData's current rules, and be consistent.
+
+On migrations, now that the device holds real recordings:
+
+- Adding an optional property or a new entity, and **removing** a property or an entity, are all inferable by SwiftData's automatic lightweight migration. Removal is not the dangerous case people assume: the new model simply has nowhere to put the old data.
+- Renames and type changes are the ones that need a hand-written `SchemaMigrationPlan`, so prefer not to.
+- Removing an entity renumbers the many-to-many join tables (`Z_5TAGS` became `Z_4TAGS` when `Marker` went). The rows survive, but this is the part to verify rather than assume.
+- Verify any schema change before it reaches the phone: `git worktree add` at the pre-change commit, write an on-disk store there with representative data (gear, tags, photos, relationships), then open that file with the new schema from a test and read everything back. Inspect with `sqlite3` to confirm what was dropped.
+- Take a copy of the device container first (see Deployment).
 
 Entities and their shape are defined in `docs/design.md`. Don't add entities, rename fields, or change relationships without being asked; propose it instead.
 
