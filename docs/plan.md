@@ -17,13 +17,13 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
 | 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
 | 6 | Markers and photos | Done, markers later removed | Sept 2026. Markers were built here and taken out again in step 7 (Oct 2026) once real use showed the app is never open while recording. Photos are stored copies (≤ 2000 px JPEG in external storage) from the system camera or the library picker, with a full-size viewer; the library-reference design was built first and replaced. Camera needs `NSCameraUsageDescription` and a device |
-| 7 | Field use and iteration | **Current** | Oct 2026: first outings done, friction round one worked and installed on the phone, schema change migrated the real store cleanly. Start-time default still open |
+| 7 | Field use and iteration | **Current** | Oct 2026: first outings done, friction round one worked and installed on the phone, schema change migrated the real store cleanly. Remaining: more real logging, then the step 8 plan |
 | 8 | Import the old Apple Notes entries | Todo | The app is the system of record, so the Shortcut's notes come in, not out. Shape it after step 7 has shown what real entries look like |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 | — | Export | Deferred | No consumer today: the app replaces the notes setup rather than feeding it, and iCloud device backup already carries the store. Pick a format when something needs the data |
 | — | BWF filename matching | Possible | Fill `filename` by matching start time against the WAV's `bext` origination time. Typing the name is easy enough; revisit only if it becomes a chore |
 
-Decisions from the spec: photo storage decided in step 1 (Photos-library references), revised in step 6 (copies in the store). WeatherKit field set decided in step 5 (all eight fields). Export format decided Sept 2026: deferred, no format chosen (see `docs/design.md`). Markers and the end time removed in step 7 (Oct 2026). One decision is open: what `startedAt` should default to, since the entry is written after the recording (see `docs/design.md`, Open questions).
+Decisions from the spec: photo storage decided in step 1 (Photos-library references), revised in step 6 (copies in the store). WeatherKit field set decided in step 5 (all eight fields). Export format decided Sept 2026: deferred, no format chosen (see `docs/design.md`). Markers and the end time removed in step 7 (Oct 2026). Start-time default decided Oct 2026: left as is (see `docs/design.md`). Nothing is open.
 
 ## Current step: 7 — Field use and iteration
 
@@ -55,7 +55,8 @@ First round, October 2026, after a few real recordings:
 
 Found while reworking the order, not from an outing:
 
-- "Started" defaults to now, which is the time the form was opened, not the time the recording began. Filling the entry afterwards means correcting it every time. Unfixed, and left for a decision, because every option costs something: leaving it is a correction per entry, rounding it hides the error, and asking on create slows the one screen that should be fast.
+- "Started" defaults to now, which is the time the form was opened, not the time the recording began. **Deliberately not fixed**: the entry gets opened just before or just after the recorder starts, so the default is already within a minute or two, and the field is only there to sort the list and find an earlier log. Ballpark is good enough, and every fix costs more than the problem.
+- The "Started" row could be renamed to something like "Logged", since that is closer to what it holds. **Deliberately not done**: cosmetic, and not worth a change on its own. Fold it into the next edit of that section.
 
 Rules for the list: write it down in the moment, one line per item, no fixing in the field. Things that belong on it: fields that are always the same and should default, taps that are hard with cold hands, anything typed twice, anything the Shortcut did that is missed, anything wrong in the weather or place name.
 
@@ -89,7 +90,7 @@ The backup step stays worth doing before any future schema change, since it is t
 
 ### Done when
 
-Where this stands as of October 2026: the first criterion is partly met and the second is met apart from the start-time item, which is deliberately open. The third has not been started.
+Where this stands as of October 2026: the first criterion is partly met, the second is met now that the start-time item is settled, and the third has not been started.
 
 - A handful of real recordings are logged in the app and the Shortcut has not been used.
 - The friction list is worked down to items that are deliberately not being fixed, each with a one-line reason.
