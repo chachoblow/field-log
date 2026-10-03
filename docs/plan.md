@@ -64,17 +64,21 @@ Items that turn out to be features rather than fixes get a roadmap row instead o
 
 ### Triage of the first round
 
-UI only, no schema risk, safe to work in any order:
+Done:
+
+- **"Ended" and markers are gone, model included.** Decided October 2026 to make the model match the app rather than hide the fields and leave dead columns behind; the reasoning is a key decision in `docs/design.md`. Removed `endedAt`, the `Marker` entity, `MarkerOffset`, `MarkersSection`, the marker unit tests, and the marker steps in the UI smoke test, which now checks that mic technique survives a relaunch instead.
+- Correcting what an earlier version of this section claimed: deleting a property or an entity **is** inferable by SwiftData's automatic lightweight migration, because the new model has nowhere to put the old data. Renames and type changes are the ones needing a hand-written plan. Verified before shipping by opening a store written with the old schema against the new one: `ZENDEDAT` and `ZMARKER` are dropped, and recordings, gear, tags, and photos all survive, including the many-to-many join tables that get renumbered when an entity leaves the schema (`Z_5TAGS` became `Z_4TAGS` with all its rows).
+
+Still to do, UI only, no schema risk, safe in any order:
 
 - **Weather summary with expand.** `WeatherSection` currently renders one `LabeledContent` per stored field. Collapse to a summary row and put the rest behind a disclosure.
-- **Section and field order.** `RecordingFormView` composes ten sections in a fixed order: When, Where, Weather, Gear, File, Capture, Markers, Photos, Review, Tags. Reordering is moving lines.
+- **Section and field order.** `RecordingFormView` composes nine sections in a fixed order: When, Where, Weather, Gear, File, Capture, Photos, Review, Tags. Reordering is moving lines.
 - **Tags on the list row.** `RecordingRow` shows date, place, and the missing-filename badge. Adding tags reads an existing relationship.
-- **App icon.** `Assets.xcassets/AppIcon.appiconset` holds three empty 1024 px slots (light, dark, tinted) and no image. Needs artwork from the developer; dark and tinted can fall back to the light one.
+- **App icon.** `Assets.xcassets/AppIcon.appiconset` holds three empty 1024 px slots (light, dark, tinted) and no image. Generating a simple placeholder, replaceable with real artwork later.
 
-Needs a decision before any code, because neither is additive:
+### Before the next install on the phone
 
-- **Dropping "Ended"** and **dropping markers** both mean removing something the store already has: the `endedAt` column, and the `Marker` entity with its cascade rule, `MarkerOffset`, and two test files. Deleting a property or an entity is not an additive change, so it needs a SwiftData migration plan, and markers are also a stated goal in `docs/design.md` with a row in the ER diagram.
-- The cheap half is free and reversible: take both out of the form and leave the schema alone. An unused optional column and an unused entity cost nothing in the store, and the spec can be revised later once the form has been simple for a while.
+The schema change is safe but untested against the real store, so take a copy of the device's container first. Either Xcode's Window → Devices and Simulators → the phone → Installed Apps → FieldLog → the gear button under the list → Download Container, or the command line, which is less fiddly (see `AGENTS.md`, Deployment).
 
 ### Done when
 

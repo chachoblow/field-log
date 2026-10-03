@@ -4,7 +4,6 @@ import SwiftData
 @Model
 final class Recording {
     var startedAt: Date = Date()
-    var endedAt: Date?
     var latitude: Double?
     var longitude: Double?
     var placeName: String?          // reverse-geocoded, user-editable
@@ -27,12 +26,10 @@ final class Recording {
 
     @Relationship(inverse: \Gear.recordings) var gear: [Gear]? = []
     @Relationship(inverse: \Tag.recordings) var tags: [Tag]? = []
-    @Relationship(deleteRule: .cascade, inverse: \Marker.recording) var markers: [Marker]? = []
     @Relationship(deleteRule: .cascade, inverse: \Photo.recording) var photos: [Photo]? = []
 
     init(
         startedAt: Date = Date(),
-        endedAt: Date? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         placeName: String? = nil,
@@ -54,11 +51,9 @@ final class Recording {
         rating: Int? = nil,
         gear: [Gear] = [],
         tags: [Tag] = [],
-        markers: [Marker] = [],
         photos: [Photo] = []
     ) {
         self.startedAt = startedAt
-        self.endedAt = endedAt
         self.latitude = latitude
         self.longitude = longitude
         self.placeName = placeName
@@ -80,7 +75,6 @@ final class Recording {
         self.rating = rating
         self.gear = gear
         self.tags = tags
-        self.markers = markers
         self.photos = photos
     }
 }

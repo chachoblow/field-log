@@ -16,7 +16,6 @@ struct RecordingFormView: View {
             GearSection(recording: recording)
             FileSection(recording: recording)
             CaptureSection(recording: recording)
-            MarkersSection(recording: recording)
             PhotosSection(recording: recording)
             ReviewSection(recording: recording)
             TagsSection(recording: recording)

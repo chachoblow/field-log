@@ -1,7 +1,7 @@
 import XCTest
 
 /// Smoke test for the recording flow: create, wait for the location fix, apply a
-/// preset, add a marker, tag, edit, relaunch, confirm everything survived, then swipe to delete.
+/// preset, mic technique, tag, edit, relaunch, confirm everything survived, then swipe to delete.
 /// Runs against the simulator's real store. Before running, grant location access
 /// and set a simulated location from the command line (see AGENTS.md); the test
 /// cannot do that itself. Set FIELDLOG_SCREENSHOT_DIR in the scheme's test
@@ -44,13 +44,10 @@ final class FieldLogUITests: XCTestCase {
         filename.tap()
         filename.typeText("UITEST01.WAV\n")
 
-        let addMarker = app.buttons["Add Marker"]
-        scroll(app, until: addMarker)
-        addMarker.tap()
-        let note = app.textFields["Note"]
-        XCTAssertTrue(note.waitForExistence(timeout: 5))
-        XCTAssertTrue(offsetLabel(in: app).exists)
-        note.typeText("plane overhead\n")
+        let micTechnique = app.textFields["Mic technique"]
+        scroll(app, until: micTechnique)
+        micTechnique.tap()
+        micTechnique.typeText("ORTF\n")
 
         let tagField = app.textFields["Add tag"]
         scroll(app, until: tagField)
@@ -74,8 +71,8 @@ final class FieldLogUITests: XCTestCase {
         let savedFilename = app.textFields["Filename"]
         scroll(app, until: savedFilename)
         XCTAssertEqual(savedFilename.value as? String, "UITEST01.WAV")
-        scroll(app, until: app.textFields["Note"])
-        XCTAssertEqual(app.textFields["Note"].value as? String, "plane overhead")
+        scroll(app, until: app.textFields["Mic technique"])
+        XCTAssertEqual(app.textFields["Mic technique"].value as? String, "ORTF")
         scroll(app, until: app.staticTexts["uitest"])
         XCTAssertTrue(app.staticTexts["uitest"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -99,11 +96,6 @@ final class FieldLogUITests: XCTestCase {
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count))
         }
         field.typeText(text)
-    }
-
-    /// A marker's offset text, "m:ss".
-    private func offsetLabel(in app: XCUIApplication) -> XCUIElement {
-        app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "^\\d+:\\d\\d$")).firstMatch
     }
 
     /// Form rows are created lazily, so an element below the fold does not exist until scrolled in.

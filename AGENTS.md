@@ -51,6 +51,15 @@ Device runs and SwiftUI previews are done manually in Xcode — don't attempt th
 - Paid Apple Developer Program membership is active (enrolled September 2026). WeatherKit, CloudKit, and TestFlight are all available; don't work around their absence.
 - The app installs directly from Xcode to the developer's iPhone; that has been verified working. No App Store or TestFlight distribution is planned.
 - Adding a capability (WeatherKit, iCloud, etc.) is done in Xcode's Signing & Capabilities tab by the developer. Say when a task needs one rather than editing entitlements or the project file. WeatherKit is already added (September 2026); `FieldLog/FieldLog.entitlements` is the file Xcode wrote for it.
+- To pull the app's data off the phone before a risky change (a schema change, especially), copy its container to the Mac. `xcrun devicectl list devices` for the name, then:
+
+```sh
+xcrun devicectl device copy from --device "<device name>" \
+  --domain-type appDataContainer --domain-identifier com.wesklein.FieldLog \
+  --source . --destination ~/Desktop/FieldLog-container
+```
+
+  That brings down the SQLite store and the external photo files. Xcode's GUI route is Window → Devices and Simulators → the phone → Installed Apps → FieldLog → the gear button beneath the list → Download Container, which writes an `.xcappdata` bundle.
 - To check what a build is signed with: `codesign -d --entitlements - --xml <path to FieldLog.app> | plutil -p -`. To check what the team profile allows: `security cms -D -i <.mobileprovision> | plutil -extract Entitlements xml1 -o - -`.
 - WeatherKit returning `WDSJWTAuthenticatorServiceListener.Errors Code=2` (a 401 from `weatherkit.apple.com/v3/token`, logged by `com.apple.weatherkit.authservice`) on both simulator and device means the App ID is not enabled for WeatherKit on Apple's side, even though the entitlement and profile look right. Xcode's capability checkbox alone was not enough in September 2026: the fix was developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → `com.wesklein.FieldLog` → Capabilities tab → tick WeatherKit → Save. It worked without a rebuild. To see the WeatherKit log on the simulator: `xcrun simctl spawn booted log show --last 5m --predicate 'subsystem == "com.apple.weather"' --style compact`.
 - Info.plist privacy strings are `INFOPLIST_KEY_*` build settings, since the plist is generated. The developer sets them: project editor → FieldLog target → Build Settings → All → search the key. Location when-in-use and camera are both set (September 2026): `INFOPLIST_KEY_NSLocationWhenInUseUsageDescription` and `INFOPLIST_KEY_NSCameraUsageDescription`. `CameraPicker.isAvailable` hides the Take Photo button when the camera key is missing, because the permission prompt crashes without it, and on the simulator, which has no camera. The Photos-library string was added and then removed in September 2026: photos are copied in through the picker, which needs no permission. To verify a usage string without touching the project file, pass it on the command line: `xcodebuild ... INFOPLIST_KEY_NSCameraUsageDescription="..." build`.

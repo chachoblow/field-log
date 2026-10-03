@@ -35,7 +35,6 @@ struct ModelTests {
 
         let fetched = try #require(try context.fetch(FetchDescriptor<Recording>()).first)
         #expect(fetched.startedAt == started)
-        #expect(fetched.endedAt == nil)
         #expect(fetched.latitude == 38.0)
         #expect(fetched.longitude == -123.0)
         #expect(fetched.placeName == "Point Reyes")
@@ -103,20 +102,6 @@ struct ModelTests {
         #expect(recording.tags?.first?.name == "birds")
     }
 
-    @Test func markerRoundTripsWithRecording() throws {
-        let container = try ModelContainer.fieldLog(inMemory: true)
-        let context = container.mainContext
-        let marker = Marker(offsetSeconds: 42.5, note: "plane overhead")
-        let recording = Recording(markers: [marker])
-        context.insert(recording)
-        try context.save()
-
-        let fetched = try #require(try context.fetch(FetchDescriptor<Marker>()).first)
-        #expect(fetched.offsetSeconds == 42.5)
-        #expect(fetched.note == "plane overhead")
-        #expect(fetched.recording?.persistentModelID == recording.persistentModelID)
-    }
-
     @Test func photoRoundTripsWithRecording() throws {
         let container = try ModelContainer.fieldLog(inMemory: true)
         let context = container.mainContext
@@ -133,13 +118,12 @@ struct ModelTests {
         #expect(fetched.recording?.persistentModelID == recording.persistentModelID)
     }
 
-    @Test func deletingRecordingCascadesToMarkersAndPhotosOnly() throws {
+    @Test func deletingRecordingCascadesToPhotosOnly() throws {
         let container = try ModelContainer.fieldLog(inMemory: true)
         let context = container.mainContext
         let recording = Recording(
             gear: [Gear(name: "Zoom F3", type: "recorder")],
             tags: [FieldLog.Tag(name: "birds")],
-            markers: [Marker(offsetSeconds: 1, note: "a")],
             photos: [Photo(imageData: Data([0x01]))]
         )
         context.insert(recording)
@@ -149,7 +133,6 @@ struct ModelTests {
         try context.save()
 
         #expect(try context.fetchCount(FetchDescriptor<Recording>()) == 0)
-        #expect(try context.fetchCount(FetchDescriptor<Marker>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<Photo>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<Gear>()) == 1)
         #expect(try context.fetchCount(FetchDescriptor<FieldLog.Tag>()) == 1)

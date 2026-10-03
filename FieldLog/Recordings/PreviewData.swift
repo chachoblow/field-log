@@ -16,7 +16,6 @@ enum PreviewData {
         context.insert(birds)
         context.insert(Recording(
             startedAt: .now.addingTimeInterval(-3_600),
-            endedAt: .now.addingTimeInterval(-3_000),
             latitude: 38.0421,
             longitude: -122.9930,
             placeName: "Point Reyes",
@@ -36,7 +35,6 @@ enum PreviewData {
             rating: 4,
             gear: fieldKit,
             tags: [birds],
-            markers: [Marker(offsetSeconds: 42, note: "plane overhead"), Marker(offsetSeconds: 318, note: "gull lands close")],
             photos: [Photo(imageData: sampleJPEG(.orange), takenAt: .now.addingTimeInterval(-3_500)), Photo(imageData: sampleJPEG(.teal), takenAt: .now.addingTimeInterval(-3_200))]
         ))
         context.insert(Recording(

@@ -4,27 +4,9 @@ import SwiftUI
 struct WhenSection: View {
     @Bindable var recording: Recording
 
-    private var hasEnded: Binding<Bool> {
-        Binding(
-            get: { recording.endedAt != nil },
-            set: { recording.endedAt = $0 ? max(.now, recording.startedAt) : nil }
-        )
-    }
-
     var body: some View {
         Section("When") {
             DatePicker("Started", selection: $recording.startedAt)
-            Toggle("Ended", isOn: hasEnded)
-            if recording.endedAt != nil {
-                DatePicker(
-                    "Ended",
-                    selection: Binding(
-                        get: { recording.endedAt ?? recording.startedAt },
-                        set: { recording.endedAt = $0 }
-                    ),
-                    in: recording.startedAt...
-                )
-            }
         }
     }
 }

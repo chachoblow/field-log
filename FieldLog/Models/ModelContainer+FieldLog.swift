@@ -8,7 +8,6 @@ extension Schema {
         Gear.self,
         KitPreset.self,
         Tag.self,
-        Marker.self,
         Photo.self,
     ])
 }

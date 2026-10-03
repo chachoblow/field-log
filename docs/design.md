@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is optional and typed once the file exists. Photos are downscaled copies stored with the log; the Photos library is not involved. Sync is off but the model is written CloudKit-compatible from day one. Export is deferred until something needs the data. No open questions.
+FieldLog replaces an Apple Notes shortcut for logging field recording metadata. It is a single-user, local-first SwiftUI + SwiftData iOS app with one primary entity, `Recording`, a seeded `Gear` reference table with kit presets, and a `Tag` entity for both subject labels and project groupings. Location, timestamp, weather, and format auto-populate; filename is optional and typed once the file exists. Photos are downscaled copies stored with the log; the Photos library is not involved. Markers and an end time were built and then removed after real use. Sync is off but the model is written CloudKit-compatible from day one. Export is deferred until something needs the data. No open questions.
 
 ## Context
 
@@ -16,7 +16,7 @@ Goals:
 
 - Faster capture than the Shortcut, with structured entry (pickers, presets) instead of free text.
 - Everything about a recording in one place, editable at any time.
-- Capture what the Shortcut can't: markers during recording, multiple photos, mic technique.
+- Capture what the Shortcut can't: multiple photos, mic technique, structured gear.
 - A model that survives turning on CloudKit later without migration.
 
 Non-goals:
@@ -28,13 +28,12 @@ Non-goals:
 
 ## Proposal
 
-One screen to list recordings, one to create or edit a recording, one to manage gear. A new recording opens with timestamp, coordinates, reverse-geocoded place name, and weather already filled. Gear is a multi-select from the seeded list, with kit presets that fill it in one tap. Tags autocomplete from existing tags. While the entry is open, a marker button captures the offset from start time plus a short note. Photos attach in any number. Filename is an optional field the list view flags as missing.
+One screen to list recordings, one to create or edit a recording, one to manage gear. A new recording opens with timestamp, coordinates, reverse-geocoded place name, and weather already filled. Gear is a multi-select from the seeded list, with kit presets that fill it in one tap. Tags autocomplete from existing tags. Photos attach in any number. Filename is an optional field the list view flags as missing.
 
 ```mermaid
 erDiagram
     Recording }o--o{ Gear : uses
     Recording }o--o{ Tag : tagged
-    Recording ||--o{ Marker : has
     Recording ||--o{ Photo : has
     KitPreset }o--o{ Gear : includes
 ```
@@ -67,6 +66,14 @@ Decided September 2026, reversing the original plan. A `Photo` holds a JPEG down
 
 The original reference design (store a `PHAsset.localIdentifier`, fetch on demand) was built first and dropped because Apple exposes less than assumed: there is no way to open Photos at a specific asset, thumbnails need library read permission, identifiers are per device so they would not survive sync, and a deleted original left a placeholder. Live Photos become stills in the app; that is acceptable.
 
+### Markers and end time are dropped
+
+Decided October 2026, after the first real recordings, reversing both the original plan and step 6's work. Markers assumed the app would be open while the recorder was rolling, and it is not: the form gets filled after the fact, so a marker button has nothing to time against. The recorders can drop marks themselves during a take, written into the file where an editor reads them at a sample position rather than at a wall-clock offset, which is strictly better than anything the app could record. `endedAt` went for the same reason plus one more: when a recording stopped is a fact about the audio file, and duration comes free out of the WAV header, so logging it by hand produced something already available.
+
+Both were removed from the model rather than just hidden in the form. Deleting a property and an entity is a change SwiftData's automatic lightweight migration infers on its own, since the new model has nowhere to put the old data; what needs a hand-written plan is renames and type changes. Verified before shipping by opening a store written with the old schema against the new one: the `ZENDEDAT` column and the `ZMARKER` table are dropped, and recordings, gear, tags, and photos survive, including the many-to-many join tables that get renumbered when an entity leaves the schema.
+
+If marks ever need to live in the app, they come back as a new entity, which is an additive change and therefore cheap. That asymmetry is the reason not to keep them around unused.
+
 ### CloudKit-compatible model with sync off
 
 Sync is not needed until there is a second device, and CloudKit debugging would distract from schema work. But the constraints CloudKit imposes — every property optional or defaulted, relationships optional, no unique attributes — are cheap to honor now and expensive to retrofit. The model follows them from the first commit; enabling sync later is a capability checkbox and a `ModelConfiguration` argument.
@@ -76,7 +83,6 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
 ```swift
 @Model final class Recording {
     var startedAt: Date = Date()
-    var endedAt: Date?
     var latitude: Double?
     var longitude: Double?
     var placeName: String?          // reverse-geocoded, user-editable
@@ -98,7 +104,6 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
     var rating: Int?                      // post-review
     var gear: [Gear]? = []
     var tags: [Tag]? = []
-    @Relationship(deleteRule: .cascade) var markers: [Marker]? = []
     @Relationship(deleteRule: .cascade) var photos: [Photo]? = []
 }
 
@@ -121,12 +126,6 @@ Sync is not needed until there is a second device, and CloudKit debugging would 
     var recordings: [Recording]? = []
 }
 
-@Model final class Marker {
-    var offsetSeconds: Double = 0
-    var note: String = ""
-    var recording: Recording?
-}
-
 @Model final class Photo {
     @Attribute(.externalStorage) var imageData: Data?  // JPEG, ≤ 2000 px long side
     var takenAt: Date?                                 // EXIF date, or capture time
@@ -144,7 +143,7 @@ Every property has a default or is optional, and every relationship is optional,
 
 **A "new recording from this one" action.** Copies context into a fresh entry for back-to-back recordings. Rejected: presets and auto-population cover it, and speed at capture isn't the constraint.
 
-**Keeping the Shortcut and appending to a markdown file in Obsidian.** Zero code and the data lands where notes already live. Rejected because it fixes the destination but not the slow launch, free-text entry, or editing problem, and gives up markers.
+**Keeping the Shortcut and appending to a markdown file in Obsidian.** Zero code and the data lands where notes already live. Rejected because it fixes the destination but not the slow launch, free-text entry, or editing problem.
 
 ## Open questions
 
