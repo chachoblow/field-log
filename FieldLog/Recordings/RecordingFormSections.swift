@@ -30,9 +30,9 @@ struct CaptureSection: View {
 
     var body: some View {
         Section("Capture") {
-            TextField("Mic technique", text: $recording.micTechnique.orEmpty)
             TextField("Description", text: $recording.captureDescription, axis: .vertical)
                 .lineLimit(3...)
+            TextField("Mic technique", text: $recording.micTechnique.orEmpty)
             Toggle("Compromised", isOn: $recording.isCompromised)
         }
     }

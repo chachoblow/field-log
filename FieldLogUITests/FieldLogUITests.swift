@@ -1,7 +1,11 @@
 import XCTest
 
-/// Smoke test for the recording flow: create, wait for the location fix, apply a
-/// preset, mic technique, tag, edit, relaunch, confirm everything survived, then swipe to delete.
+/// Smoke test for the recording flow: create, fill the form top to bottom
+/// (mic technique, gear preset, tag, filename, place), wait for the location
+/// fix, relaunch, confirm everything survived, then swipe to delete.
+///
+/// The steps follow the form's section order, because `scroll(_:until:)` only
+/// swipes downward and a row below the fold does not exist until it is reached.
 /// Runs against the simulator's real store. Before running, grant location access
 /// and set a simulated location from the command line (see AGENTS.md); the test
 /// cannot do that itself. Set FIELDLOG_SCREENSHOT_DIR in the scheme's test
@@ -25,12 +29,10 @@ final class FieldLogUITests: XCTestCase {
 
         app.buttons["New Recording"].tap()
 
-        let place = app.textFields["Place"]
-        XCTAssertTrue(place.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Coordinates"].waitForExistence(timeout: 30))
-        XCTAssertTrue(app.staticTexts["Locating…"].waitForNonExistence(timeout: 30))
-        save(app.screenshot(), as: "where")
-        clearAndType("UI Test Cove\n", into: place)
+        let micTechnique = app.textFields["Mic technique"]
+        XCTAssertTrue(micTechnique.waitForExistence(timeout: 5))
+        micTechnique.tap()
+        micTechnique.typeText("ORTF\n")
 
         let applyPreset = app.buttons["Apply Preset"]
         scroll(app, until: applyPreset)
@@ -38,26 +40,39 @@ final class FieldLogUITests: XCTestCase {
         app.buttons["Field kit"].tap()
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
 
-        let filename = app.textFields["Filename"]
-        scroll(app, until: filename)
-        XCTAssertTrue(containing("48 kHz", in: app).waitForExistence(timeout: 5))
-        filename.tap()
-        filename.typeText("UITEST01.WAV\n")
-
-        let micTechnique = app.textFields["Mic technique"]
-        scroll(app, until: micTechnique)
-        micTechnique.tap()
-        micTechnique.typeText("ORTF\n")
-
         let tagField = app.textFields["Add tag"]
         scroll(app, until: tagField)
         tagField.tap()
         tagField.typeText("uitest\n")
         XCTAssertTrue(app.staticTexts["uitest"].waitForExistence(timeout: 5))
+
+        let filename = app.textFields["Filename"]
+        scroll(app, until: filename)
+        filename.tap()
+        filename.typeText("UITEST01.WAV\n")
+
+        // The recorder's defaults fill the rows below the filename, so they need
+        // their own scroll rather than riding along with it.
+        let sampleRate = containing("48 kHz", in: app)
+        scroll(app, until: sampleRate)
+        XCTAssertTrue(sampleRate.waitForExistence(timeout: 5))
+
+        let place = app.textFields["Place"]
+        scroll(app, until: place)
+        XCTAssertTrue(app.staticTexts["Coordinates"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Locating…"].waitForNonExistence(timeout: 30))
+        save(app.screenshot(), as: "where")
+        clearAndType("UI Test Cove\n", into: place)
         save(app.screenshot(), as: "form")
+
+        let updateWeather = app.buttons["Update Weather"]
+        scroll(app, until: updateWeather)
+        XCTAssertTrue(updateWeather.exists)
+        save(app.screenshot(), as: "weather")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["UI Test Cove"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["uitest"].exists, "the list row should show the recording's tags")
         save(app.screenshot(), as: "list")
 
         app.terminate()
@@ -66,15 +81,16 @@ final class FieldLogUITests: XCTestCase {
         let row = app.staticTexts["UI Test Cove"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
+        let savedMic = app.textFields["Mic technique"]
+        XCTAssertTrue(savedMic.waitForExistence(timeout: 5))
+        XCTAssertEqual(savedMic.value as? String, "ORTF")
         scroll(app, until: containing("Zoom F3", in: app))
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
+        scroll(app, until: app.staticTexts["uitest"])
+        XCTAssertTrue(app.staticTexts["uitest"].exists)
         let savedFilename = app.textFields["Filename"]
         scroll(app, until: savedFilename)
         XCTAssertEqual(savedFilename.value as? String, "UITEST01.WAV")
-        scroll(app, until: app.textFields["Mic technique"])
-        XCTAssertEqual(app.textFields["Mic technique"].value as? String, "ORTF")
-        scroll(app, until: app.staticTexts["uitest"])
-        XCTAssertTrue(app.staticTexts["uitest"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         row.swipeLeft()
