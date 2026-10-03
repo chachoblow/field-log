@@ -5,10 +5,10 @@ import SwiftUI
 /// so there is no Save button. The context autosaves in the background and on
 /// backgrounding; the explicit save on dismiss also covers an abrupt kill.
 ///
-/// Section order follows what the form is for: the entry is filled in after the
-/// recording, so the start time (which defaults to now and usually needs
-/// correcting) and the fields that are typed come first, and the auto-filled
-/// context sits below them. Review is last because it happens days later.
+/// Section order follows the shape of a take: when it started, the kit and the
+/// shots of the setup, then what gets written about the capture and its tags,
+/// then the context that fills itself in. File and Review are last because
+/// neither exists until after the recording does.
 struct RecordingFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var recording: Recording
@@ -16,13 +16,13 @@ struct RecordingFormView: View {
     var body: some View {
         Form {
             WhenSection(recording: recording)
-            CaptureSection(recording: recording)
             GearSection(recording: recording)
-            TagsSection(recording: recording)
             PhotosSection(recording: recording)
-            FileSection(recording: recording)
+            CaptureSection(recording: recording)
+            TagsSection(recording: recording)
             WhereSection(recording: recording)
             WeatherSection(recording: recording)
+            FileSection(recording: recording)
             ReviewSection(recording: recording)
         }
         .navigationTitle(Text(recording.startedAt, format: .dateTime.month().day().year()))

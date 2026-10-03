@@ -29,6 +29,11 @@ xcrun simctl boot "iPhone 17"; xcrun simctl bootstatus "iPhone 17" -b; open -a S
 # `open -a Simulator` fails on this machine: Xcode 27 ships no Simulator.app in the bundle and
 # there is none in /Applications. The UI test runs fine against the booted device without it,
 # so boot, wait for bootstatus, and go. Reinstall the app first to clear the previous run's store.
+# The device shuts itself down between runs, and every simctl setup command then fails with
+# "Unable to lookup in current state: Shutdown". `xcodebuild test` boots it again on its own, so
+# the run still happens, just with no granted permission and no simulated location, and the test
+# fails at the location fix as though the app were broken. Boot before the setup commands and
+# never silence them.
 # The test expects a location fix, so grant access and set a position first. Set the position
 # right before each run; it has been seen reset to Apple's default between runs.
 xcrun simctl privacy booted grant location com.wesklein.FieldLog

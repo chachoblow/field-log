@@ -1,7 +1,7 @@
 import XCTest
 
 /// Smoke test for the recording flow: create, fill the form top to bottom
-/// (mic technique, gear preset, tag, filename, place), wait for the location
+/// (gear preset, mic technique, tag, place, filename), wait for the location
 /// fix, relaunch, confirm everything survived, then swipe to delete.
 ///
 /// The steps follow the form's section order, because `scroll(_:until:)` only
@@ -29,22 +29,36 @@ final class FieldLogUITests: XCTestCase {
 
         app.buttons["New Recording"].tap()
 
-        let micTechnique = app.textFields["Mic technique"]
-        XCTAssertTrue(micTechnique.waitForExistence(timeout: 5))
-        micTechnique.tap()
-        micTechnique.typeText("ORTF\n")
-
         let applyPreset = app.buttons["Apply Preset"]
-        scroll(app, until: applyPreset)
+        XCTAssertTrue(applyPreset.waitForExistence(timeout: 5))
         applyPreset.tap()
         app.buttons["Field kit"].tap()
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
+
+        let micTechnique = app.textFields["Mic technique"]
+        scroll(app, until: micTechnique)
+        micTechnique.tap()
+        micTechnique.typeText("ORTF\n")
 
         let tagField = app.textFields["Add tag"]
         scroll(app, until: tagField)
         tagField.tap()
         tagField.typeText("uitest\n")
         XCTAssertTrue(app.staticTexts["uitest"].waitForExistence(timeout: 5))
+
+        // Scroll to the section's last row, not its first: the fix state and the
+        // coordinates sit below the Place field and do not exist to the test
+        // until they are actually on screen.
+        scroll(app, until: app.buttons["Update Location"])
+        XCTAssertTrue(app.staticTexts["Coordinates"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Locating…"].waitForNonExistence(timeout: 30))
+        save(app.screenshot(), as: "where")
+        clearAndType("UI Test Cove\n", into: app.textFields["Place"])
+
+        let updateWeather = app.buttons["Update Weather"]
+        scroll(app, until: updateWeather)
+        XCTAssertTrue(updateWeather.exists)
+        save(app.screenshot(), as: "weather")
 
         let filename = app.textFields["Filename"]
         scroll(app, until: filename)
@@ -56,19 +70,7 @@ final class FieldLogUITests: XCTestCase {
         let sampleRate = containing("48 kHz", in: app)
         scroll(app, until: sampleRate)
         XCTAssertTrue(sampleRate.waitForExistence(timeout: 5))
-
-        let place = app.textFields["Place"]
-        scroll(app, until: place)
-        XCTAssertTrue(app.staticTexts["Coordinates"].waitForExistence(timeout: 30))
-        XCTAssertTrue(app.staticTexts["Locating…"].waitForNonExistence(timeout: 30))
-        save(app.screenshot(), as: "where")
-        clearAndType("UI Test Cove\n", into: place)
         save(app.screenshot(), as: "form")
-
-        let updateWeather = app.buttons["Update Weather"]
-        scroll(app, until: updateWeather)
-        XCTAssertTrue(updateWeather.exists)
-        save(app.screenshot(), as: "weather")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["UI Test Cove"].waitForExistence(timeout: 5))
@@ -81,11 +83,11 @@ final class FieldLogUITests: XCTestCase {
         let row = app.staticTexts["UI Test Cove"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
-        let savedMic = app.textFields["Mic technique"]
-        XCTAssertTrue(savedMic.waitForExistence(timeout: 5))
-        XCTAssertEqual(savedMic.value as? String, "ORTF")
         scroll(app, until: containing("Zoom F3", in: app))
         XCTAssertTrue(containing("Zoom F3", in: app).waitForExistence(timeout: 5))
+        let savedMic = app.textFields["Mic technique"]
+        scroll(app, until: savedMic)
+        XCTAssertEqual(savedMic.value as? String, "ORTF")
         scroll(app, until: app.staticTexts["uitest"])
         XCTAssertTrue(app.staticTexts["uitest"].exists)
         let savedFilename = app.textFields["Filename"]
