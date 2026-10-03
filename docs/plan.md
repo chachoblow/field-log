@@ -17,7 +17,7 @@ Each step is one or a few tasks, ends with a runnable app, and gets its own comm
 | 4 | Location service: Core Location + reverse geocoding | Done | Sept 2026. `CLLocationUpdate.liveUpdates()` + `MKReverseGeocodingRequest`; smoke test needs simctl grant + location set |
 | 5 | Weather service: WeatherKit | Done | Sept 2026. `WeatherFetcher` runs after the location fix; current conditions within 3 h of start, else the forecast hour. Verified on device after ticking WeatherKit on the App ID's Capabilities tab in the portal |
 | 6 | Markers and photos | Done, markers later removed | Sept 2026. Markers were built here and taken out again in step 7 (Oct 2026) once real use showed the app is never open while recording. Photos are stored copies (≤ 2000 px JPEG in external storage) from the system camera or the library picker, with a full-size viewer; the library-reference design was built first and replaced. Camera needs `NSCameraUsageDescription` and a device |
-| 7 | Field use and iteration | **Current** | Oct 2026: first outings done, friction round one worked. Markers and end time removed from the model, weather collapsed, form reordered, tags on list rows, placeholder icon. Start-time default still open |
+| 7 | Field use and iteration | **Current** | Oct 2026: first outings done, friction round one worked and installed on the phone, schema change migrated the real store cleanly. Start-time default still open |
 | 8 | Import the old Apple Notes entries | Todo | The app is the system of record, so the Shortcut's notes come in, not out. Shape it after step 7 has shown what real entries look like |
 | — | CloudKit sync | Deferred | Model is already compatible; enable when a second device exists |
 | — | Export | Deferred | No consumer today: the app replaces the notes setup rather than feeding it, and iCloud device backup already carries the store. Pick a format when something needs the data |
@@ -81,9 +81,11 @@ All seven items are worked. What changed:
 
 The smoke test moved with the form, since it can only scroll downward and a row below the fold does not exist to it until reached. It now also checks the weather section renders and that the list row carries the tags.
 
-### Before the next install on the phone
+### The install on the phone
 
-The schema change is safe but untested against the real store, so take a copy of the device's container first. Either Xcode's Window → Devices and Simulators → the phone → Installed Apps → FieldLog → the gear button under the list → Download Container, or the command line, which is less fiddly (see `AGENTS.md`, Deployment).
+Done, October 2026, and the store came through. The removal of `endedAt` and the `Marker` entity migrated the real device store on first launch with no trouble reported, which is the confirmation the synthetic fixture could only approximate.
+
+The backup step stays worth doing before any future schema change, since it is the only undo: Xcode's Window → Devices and Simulators → the phone → Installed Apps → FieldLog → the gear button under the list → Download Container, or the command line, which is less fiddly (see `AGENTS.md`, Deployment).
 
 ### Done when
 

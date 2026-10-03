@@ -72,6 +72,8 @@ Decided October 2026, after the first real recordings, reversing both the origin
 
 Both were removed from the model rather than just hidden in the form. Deleting a property and an entity is a change SwiftData's automatic lightweight migration infers on its own, since the new model has nowhere to put the old data; what needs a hand-written plan is renames and type changes. Verified before shipping by opening a store written with the old schema against the new one: the `ZENDEDAT` column and the `ZMARKER` table are dropped, and recordings, gear, tags, and photos survive, including the many-to-many join tables that get renumbered when an entity leaves the schema.
 
+Confirmed on the device in October 2026: the build with both removed migrated the real store on first launch without incident.
+
 If marks ever need to live in the app, they come back as a new entity, which is an additive change and therefore cheap. That asymmetry is the reason not to keep them around unused.
 
 ### CloudKit-compatible model with sync off
