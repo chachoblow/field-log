@@ -8,9 +8,18 @@ import WeatherKit
 struct WeatherSection: View {
     let recording: Recording
     @Environment(WeatherFetcher.self) private var weatherFetcher
+    @State private var showsAllReadings = false
 
     private var hasCoordinates: Bool {
         recording.latitude != nil && recording.longitude != nil
+    }
+
+    private var summary: String? {
+        WeatherSummary.line(
+            conditions: recording.weatherSummary,
+            temperatureC: recording.temperatureC,
+            windSpeedKph: recording.windSpeedKph
+        )
     }
 
     var body: some View {
@@ -18,7 +27,13 @@ struct WeatherSection: View {
             if weatherFetcher.status == .loading {
                 LabeledContent("Loading weather…") { ProgressView() }
             }
-            WeatherRows(recording: recording)
+            if let summary {
+                DisclosureGroup(isExpanded: $showsAllReadings) {
+                    WeatherRows(recording: recording)
+                } label: {
+                    Text(summary)
+                }
+            }
             Button("Update Weather", systemImage: "cloud.sun") {
                 weatherFetcher.fill(recording)
             }
@@ -48,7 +63,7 @@ struct WeatherSection: View {
     }
 }
 
-/// One row per stored field that has a value.
+/// One row per stored field that has a value, shown when the section is expanded.
 private struct WeatherRows: View {
     let recording: Recording
 
